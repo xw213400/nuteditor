@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:VGroup xmlns:fx="http://ns.adobe.com/mxml/2009"
+		  xmlns:s="library://ns.adobe.com/flex/spark"
+		  xmlns:mx="library://ns.adobe.com/flex/mx"
+		  xmlns:custom="common.ui.custom.*"
+		  xmlns:ui="effect.ui.*"
+		  width="260" creationComplete="creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import common.command.CommandChannel;
+			
+			import effect.command.Command;
+			import effect.logic.EditData;
+			import effect.logic.PtxHelper;
+			import effect.logic.World3D;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			
+			import nut.core.Nut;
+			import nut.enum.Culling;
+			import nut.enum.ResType;
+			import nut.ext.effect.EffectElem;
+			import nut.ext.effect.EffectNode;
+			import nut.ext.effect.particle.ParticleSystem;
+			import nut.util.NutMath;
+			import nut.util.shaders.PositionDiffuseShader;
+			import nut.util.shaders.particle.ParticleShader;
+
+			[Bindable]
+			private var _list:ArrayCollection = new ArrayCollection();
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				CommandChannel.instance.bindHandler(Command.DlgEffectTree_NEW_EFFECT, createEffect);
+				CommandChannel.instance.bindHandler(Command.DlgEffectTree_OPEN_EFFECT, openEffect);
+				CommandChannel.instance.bindHandler(Command.DlgEffectTree_ADD_COMP, addComponent);
+				
+				BGCOLOR.selectedColor = 0x666666;
+			}
+			
+			private function createEffect():void
+			{
+				var eff:EffectNode = new EffectNode();
+				Nut.scene.addChild(eff);
+				initEffect(eff);
+			}
+			
+			private function openEffect(data:ByteArray, url:String):void
+			{
+				data.uncompress(CompressionAlgorithm.LZMA);
+				
+				var eff:EffectNode = new EffectNode();
+				eff.name = Nut.resMgr.solveName(url, ResType.EFFECT);
+				eff.decode(data);
+				
+				Nut.scene.addChild(eff);
+				
+				initEffect(eff);
+			}
+			
+			private function addComponent(type:uint):void
+			{
+				var item:Object = effectTree.selectedItem;
+				
+				if (item == null || item.data.type != EditData.T_Particle)
+					return ;
+				
+				var elem:EffectElem = item.data.data as EffectElem;
+				
+				if (PtxHelper.addComponent(elem, type))
+				{
+					initComponent(elem, item, type);
+					effectTree.expandItem(item, true);
+				}
+			}
+			
+			private function initEffect(eff:EffectNode):void
+			{
+				World3D.instance.effect = eff;
+				var editData:EditData = new EditData(EditData.T_Effect, eff);
+				var item:Object = {label:"特效", data:editData, children:new ArrayCollection()};
+				_list.addItem(item);
+				
+				for each (var elem:EffectElem in eff.elements)
+				{
+					initParticle(elem, item);
+				}
+			}
+			
+			private function initParticle(elem:EffectElem, parent:Object):void
+			{
+				var editData:EditData = new EditData(EditData.T_Particle, elem, World3D.instance.effect);
+				var item:Object = {label:"粒子", data:editData, children:new ArrayCollection(), checked:true};
+				parent.children.addItem(item);
+				
+				var comps:Vector.<uint> = PtxHelper.getComponents(elem);
+				for (var i:int = 0; i != comps.length; ++i)
+					initComponent(elem, item, comps[i]);
+			}
+			
+			private function initComponent(elem:EffectElem, parent:Object, type:uint):void
+			{
+				var editData:EditData = new EditData(type, null, elem);
+				parent.children.addItem({label:EditData.LABELS[type], data:editData, parent:elem, checked:true});
+			}
+			
+			protected function changeBGColor(event:Event):void
+			{
+				var color:uint = event.target.selectedColor;
+				Nut.scene.viewport.backgroundColor = NutMath.parseARGB(color);
+			}
+			
+			protected function addParticleHandler(event:MouseEvent):void
+			{
+				if (World3D.instance.effect == null)
+					return ;
+				
+				var item:Object = findItem(EditData.T_Effect, World3D.instance.effect, null, _list);
+				var elem:EffectElem = new EffectElem(10);
+				
+				elem.material.addShader(ParticleShader.getShader(elem));
+				elem.material.setCulling("ParticleShader", Culling.NONE);
+				
+				World3D.instance.effect.addElement(elem);
+				World3D.instance.effect.alive = true;
+				
+				initParticle(elem, item);
+				
+				effectTree.expandItem(item, true);
+			}
+			
+			protected function addComponentHandler(event:MouseEvent):void
+			{
+				if (effectTree.selectedItem == null || effectTree.selectedItem.data.type != EditData.T_Particle)
+					return ;
+				
+				CommandChannel.instance.postCommand(Command.DlgAddComponent_SHOW);
+			}
+			
+			protected function del_clickHandler(event:MouseEvent):void
+			{
+				if (_list.length !=0 && effectTree.selectedItem && effectTree.selectedItem.parent!=null)
+				{
+				}
+			}
+			
+			private function findItem(type:uint, data:Object, parent:Object, list:ArrayCollection):Object
+			{
+				for (var i:uint = 0; i != list.length; ++i)
+				{
+					var editData:EditData = list.getItemAt(i).data;
+					if (editData.type == type && editData.data == data && editData.parent == parent)
+						return list.getItemAt(i);
+					if (list.getItemAt(i).children != null)
+						return findItem(type, data, parent, list.getItemAt(i).children);
+				}
+
+				return null;
+			}
+			
+			protected function particle_itemClickHandler(event:ListEvent):void
+			{
+				var item:Object = effectTree.selectedItem;
+				if (effectTree.dataDescriptor.isBranch(item))
+				{
+					if (item.children != null && item.children.length > 0)
+					{
+						var flag:Boolean = effectTree.isItemOpen(item);
+						effectTree.expandItem(item, !flag);
+					}
+				}
+				
+				CommandChannel.instance.postCommand(Command.DlgProp_SELECT_ITEM, item.data.type, item.data.data, item.data.parent);
+			}
+			 
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Group width="100%" height="25">
+		<s:Button x="0" y="2" width="72" label="添加粒子" click="addParticleHandler(event)"></s:Button>
+		<s:Button x="85" y="2" width="72" label="添加组件" click="addComponentHandler(event)"/>
+		<s:Button x="170" y="2" width="50" label="删除" click="del_clickHandler(event)"></s:Button>
+		<mx:ColorPicker id="BGCOLOR" x="232" y="1" change="changeBGColor(event)"/>
+	</s:Group>
+	<custom:AutoSizeTree 
+		id="effectTree" 
+		dataProvider="{_list}"  focusEnabled="false"
+		disclosureClosedIcon="{null}" 
+		disclosureOpenIcon="{null}" width="100%" height="100%" itemClick="particle_itemClickHandler(event)"
+		itemRenderer="common.ui.custom.TreeItemCheckBoxRenderer">
+	</custom:AutoSizeTree>
+</s:VGroup>

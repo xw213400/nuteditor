@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:ui="effect.ui.*" creationComplete="creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import common.command.CommandChannel;
+			
+			import effect.command.Command;
+			import effect.logic.EditData;
+			
+			import mx.events.FlexEvent;
+			
+			import nut.ext.effect.EffectElem;
+			import nut.ext.effect.EffectNode;
+			import nut.ext.effect.particle.ParticleSystem;
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				CommandChannel.instance.bindHandler(Command.DlgProp_SELECT_ITEM, onSelectItem);
+			}
+			
+			private function onSelectItem(type:uint, data:Object, parent:Object):void
+			{
+				hideAll();
+				
+				if (type == EditData.T_BoxInit)
+				{
+					dlgBoxInit.show(parent as ParticleSystem);
+				}
+				else if (type == EditData.T_LinearForceAff)
+				{
+					dlgLinearForceAff.show(parent as ParticleSystem);
+				}
+				else if (type == EditData.T_ColorRangeInit)
+				{
+					dlgColorRangeInit.show(parent as ParticleSystem);
+				}
+				else if (type == EditData.T_Particle)
+				{
+					dlgParticle.show(data as EffectElem);
+				}
+				else if (type == EditData.T_ScaleRangeInit)
+				{
+					dlgScaleRangeInit.show(parent as ParticleSystem);
+				}
+				else if (type == EditData.T_ScaleAff)
+				{
+					dlgScaleAff.show(parent as ParticleSystem);
+				}
+				else if (type == EditData.T_RotateInit)
+				{
+					dlgRotateInit.show(parent as ParticleSystem);
+				}
+				else if (type == EditData.T_ColorFadeAff)
+				{
+					dlgColorFadeAff.show(parent as ParticleSystem);
+				}
+				else if (type == EditData.T_Effect)
+				{
+					dlgEffectProp.show(data as EffectNode);
+				}
+			}
+			
+			private function hideAll():void
+			{
+				dlgEffectProp.visible = false;
+				dlgScaleRangeInit.visible = false;
+				dlgLinearForceAff.visible = false;
+				dlgColorRangeInit.visible = false;
+				dlgBoxInit.visible = false;
+				dlgParticle.visible = false;
+				dlgRotateInit.visible = false;
+				dlgScaleAff.visible = false;
+				dlgColorFadeAff.visible = false;
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<ui:DlgLinearForceAff id="dlgLinearForceAff" visible="false" width="100%" height="100%"/>
+	<ui:DlgBoxInit id="dlgBoxInit" visible="false" width="100%" height="100%"/>
+	<ui:DlgRotateInit id="dlgRotateInit" visible="false" width="100%" height="100%"/>
+	<ui:DlgScaleRangeInit id="dlgScaleRangeInit" visible="false" width="100%" height="100%"/>
+	<ui:DlgColorRangeInit id="dlgColorRangeInit" visible="false" width="100%" height="100%"/>
+	<ui:DlgParticle id="dlgParticle" visible="false" width="100%" height="100%"/>
+	<ui:DlgScaleAff id="dlgScaleAff" visible="false" width="100%" height="100%"/>
+	<ui:DlgColorFadeAff id="dlgColorFadeAff" visible="false" width="100%" height="100%"/>
+	<ui:DlgEffectProp id="dlgEffectProp" visible="false" width="100%" height="100%"/>
+</s:Group>

@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 width="260" height="100%">
+	<fx:Script>
+		<![CDATA[
+			import common.command.CommandChannel;
+			import common.logic.SaveResHelper;
+			
+			import model.command.Command;
+			import common.logic.LoadResHelper;
+			
+			import mx.collections.ArrayCollection;
+			
+			import nut.core.NutTexture;
+			import nut.core.material.DataProvider;
+			import nut.core.material.Material;
+			import nut.core.material.Property;
+			import nut.enum.Blending;
+			import nut.enum.Culling;
+			import nut.enum.ResType;
+			import nut.util.BytesLoader;
+			
+			import spark.components.gridClasses.ComboBoxGridItemEditor;
+			import spark.events.GridItemEditorEvent;
+			
+			[Bindable]
+			private var _shaders :ArrayCollection = new ArrayCollection([]);
+			
+			[Bindable]
+			private var _properties :ArrayCollection = new ArrayCollection([]);
+			
+			[Bindable]
+			private var _blend:ArrayCollection = new ArrayCollection( 
+				[
+					{label:"DEST_ALPHA",	data:Blending.DESTINATION_ALPHA},  
+					{label:"DEST_COLOR",	data:Blending.DESTINATION_COLOR},  
+					{label:"ONE",			data:Blending.ONE},
+					{label:"1-DEST_ALPHA",	data:Blending.ONE_MINUS_DESTINATION_ALPHA},
+					{label:"1-DEST_COLOR",	data:Blending.ONE_MINUS_DESTINATION_COLOR},
+					{label:"1-SRC_ALPHA",	data:Blending.ONE_MINUS_SOURCE_ALPHA},  
+					{label:"1-SRC_COLOR",	data:Blending.ONE_MINUS_SOURCE_COLOR},  
+					{label:"SRC_ALPHA",		data:Blending.SOURCE_ALPHA},
+					{label:"SRC_COLOR",		data:Blending.SOURCE_COLOR},
+					{label:"ZERO",			data:Blending.ZERO}
+				]);
+			
+			[Bindable]
+			private var _culling:ArrayCollection = new ArrayCollection( 
+				[
+					{label:"NONE",		data:Culling.NONE},  
+					{label:"FRONT",		data:Culling.FRONT},
+					{label:"BACK",		data:Culling.BACK},  
+					{label:"BOTH",		data:Culling.BOTH}
+				]);
+			
+			private var _material	:Material = null;
+			private var _editItem	:Object = null;
+			private var _shaderName	:String = null;
+			
+			public function set material(value:Material):void
+			{
+				_material = value;
+				
+				_shaders.removeAll();
+				
+				var dp:DataProvider;
+				var count:int = 0;
+				for (var name:String in _material.datas)
+				{
+					dp = _material.datas[name];
+					_shaders.addItem({label:name, data:dp});
+					
+					if (0 == count++)
+					{
+						_shaderName = name;
+						shaders.selectedIndex = 0;
+						setShader(shaders.selectedItem.data);
+					}
+				}
+			}
+			
+			private function setShader(data:DataProvider):void
+			{
+				_properties.removeAll();
+				
+				for (var key:String in data.properties)
+				{
+					var prop :Property = data.getProperty(key);
+					
+					_properties.addItem({name:key, value:prop.toString(), data:prop});
+				}
+				
+				culling.selectedIndex = _material.getCulling(_shaderName);
+				blendSrc.selectedIndex = _material.getBlendSrc(_shaderName);
+				blendDst.selectedIndex = _material.getBlendDst(_shaderName);
+			}
+			
+			private function onEditProp(evt:GridItemEditorEvent):void
+			{
+				var col:int = evt.columnIndex;
+				var row:int = evt.rowIndex;
+				
+				_editItem = _properties.getItemAt(row);
+				var prop:Property = _editItem.data;
+				
+				if (prop.value is NutTexture)
+				{
+					evt.preventDefault();
+					LoadResHelper.load("open image", new FileFilter("图像文件(*.png;*.jpg)","*.png;*.jpg"), onLoadImageComplete);
+				}
+				else if (prop.value is Boolean)
+				{
+					var editor:ClassFactory = new ClassFactory(ComboBoxGridItemEditor);
+					valueColumn.itemEditor = editor;
+				}
+				
+				CommandChannel.instance.postCommand(Command.DlgMaterial_CHANGE);
+			}
+			
+			private function onSaveProp(evt:GridItemEditorEvent):void
+			{
+				var col:int = evt.columnIndex;
+				var row:int = evt.rowIndex;
+				
+				_editItem = _properties.getItemAt(row);
+				var prop:Property = _editItem.data;
+				var valStr:String = _editItem.value;
+				
+				if (prop.value is Number)
+					prop.value = parseFloat(valStr);
+			}
+			
+			private function onLoadImageComplete(data:ByteArray,imageName:String):void
+			{
+				var prop:Property = _editItem.data;
+				var texture:NutTexture = new NutTexture();
+				texture.name = imageName.split("/").pop();
+				prop.value = texture;
+				_editItem.value = prop.toString();
+				_properties.refresh();
+				
+				var loader:BytesLoader = new BytesLoader();
+				loader.loadImage(data, onImageComplete, prop);
+			}
+			
+			private function onImageComplete(bitmapData:BitmapData, prop:Property):void
+			{
+				(prop.value as NutTexture).setContent(bitmapData);
+			}
+			
+			private function onSaveMaterial(file:File, matName:String):void
+			{
+				var data :ByteArray = new ByteArray();
+				_material.encode(data);
+				
+				var fs:FileStream = new FileStream();
+				fs.open(file, FileMode.WRITE);
+				fs.position = 0;
+				fs.writeBytes(data);
+				fs.close();
+				
+				CommandChannel.instance.postCommand(Command.DlgMaterial_SAVE, matName);
+			}
+			
+			private function changeCulling(event:Event):void
+			{
+				var cl:uint = ComboBox(event.target).selectedItem.data;
+				_material.setCulling(_shaderName, cl);
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Button id="load" x="83" y="0" label="add"/>
+	<s:Label x="5" y="42" text="shader:"/>
+	<s:ComboBox x="50" y="35" width="150" id="shaders" dataProvider="{_shaders}"/>
+	<s:Group id="shaderProperties" y="70" height="100%">
+		<s:DataGrid id="propGrid" x="0" y="100" width="260" height="100%" dataProvider="{_properties}"
+					editable="true" gridItemEditorSessionSave="onSaveProp(event)"
+					gridItemEditorSessionStarting="onEditProp(event)">
+			<s:columns>
+				<s:ArrayList>
+					<s:GridColumn width="80" headerText="Property" dataField="name" editable="false"/>
+					<s:GridColumn id="valueColumn" width="160" headerText="Value" dataField="value"/>
+				</s:ArrayList>
+			</s:columns>
+		</s:DataGrid>
+		<s:Label x="11" y="15" text="Culling"/>
+		<s:ComboBox x="104" y="10" id="culling" dataProvider="{_culling}" close="changeCulling(event)"/>
+		<s:Label x="10" y="48" text="BlendSrc"/>
+		<s:ComboBox x="104" y="40" id="blendSrc" dataProvider="{_blend}"/>
+		<s:Label x="10" y="78" text="BlendDst"/>
+		<s:ComboBox x="104" y="70" id="blendDst" dataProvider="{_blend}"/>
+		<mx:HRule x="10" y="0" width="240"/>
+	</s:Group>
+</s:Group>

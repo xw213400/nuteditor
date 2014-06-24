@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="420" height="300">
+	
+	<fx:Script>
+		<![CDATA[
+			import common.command.CommandChannel;
+			import common.command.CommandConst;
+			
+			import mx.managers.PopUpManager;
+			
+			import nut.core.Nut;
+			
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				PopUpManager.removePopUp(this);
+				CommandChannel.instance.postCommand(CommandConst.DlgBaseUrl_OK, baseUrl.text);
+			}
+			
+			protected function button2_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				var file :File = new File();
+				file.addEventListener(Event.SELECT, onSelectFolder);
+				file.browseForDirectory("Choose a work folder");
+			}
+			
+			private function onSelectFolder(evt:Event):void
+			{
+				var file:File = evt.target as File;
+				baseUrl.text = file.url;
+			}
+			
+			public function init():void
+			{
+				if (Nut.resMgr)
+				{
+					baseUrl.text = Nut.resMgr.baseUrl;
+				}
+				else
+				{
+					baseUrl.text = "";
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label x="0" y="10" text="Work Folder:"/>
+	<s:TextInput id="baseUrl" x="68" y="5" width="300" enabled="false"/>
+	<s:Button x="373" y="5" label="choose..." click="button2_clickHandler(event)"/>
+	<s:Button x="100" y="100" label="OK" click="button1_clickHandler(event)"/>
+</s:Group>

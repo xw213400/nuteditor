@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx">
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import nut.core.Float4;
+			import nut.ext.effect.particle.ParticleSystem;
+			
+			private var _ptx:ParticleSystem;
+			
+			public function show(ptx:ParticleSystem):void
+			{
+				if (ptx == null || ptx.material.getProperty("ParticleShader", "forceAdj") == null)
+					return ;
+				
+				this.visible = true;
+				_ptx = ptx;
+				
+				var forceAdj:Float4 = _ptx.material.getFloat4("ParticleShader", "forceAdj");
+				
+				FX.text = forceAdj.x.toPrecision(3);
+				FY.text = forceAdj.y.toPrecision(3);
+				FZ.text = forceAdj.z.toPrecision(3);
+			}
+			
+			private function changeF(event:Event):void
+			{
+				var forceAdj:Float4 = _ptx.material.getFloat4("ParticleShader", "forceAdj");
+				
+				forceAdj.x = parseFloat(FX.text);
+				forceAdj.y = parseFloat(FY.text);
+				forceAdj.z = parseFloat(FZ.text);
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label x="24" y="27" text="力"/>
+	<s:TextInput id="FX" x="74" y="19" width="39" change="changeF(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="FY" x="136" y="20" width="39" change="changeF(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="FZ" x="198" y="20" width="39" change="changeF(event)" restrict="0-9 . \-"/>
+	<s:Label x="186" y="27" text="Z"/>
+	<s:Label x="124" y="27" text="Y"/>
+	<s:Label x="61" y="26" text="X"/>
+</s:Group>

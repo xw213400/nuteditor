@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx">
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import nut.core.Float4;
+			import nut.ext.effect.particle.ParticleSystem;
+			
+			private var _ptx:ParticleSystem;
+			
+			public function show(ptx:ParticleSystem):void
+			{
+				if (ptx == null || ptx.material.getProperty("ParticleShader", "rotation") == null)
+					return ;
+				
+				this.visible = true;
+				_ptx = ptx;
+				
+				var rotation:Float4 = _ptx.material.getFloat4("ParticleShader", "rotation");
+				
+				RMIN.text = rotation.x.toPrecision(3);
+				RMAX.text = rotation.y.toPrecision(3);
+				SMIN.text = rotation.z.toPrecision(3);
+				SMAX.text = rotation.w.toPrecision(3);
+			}
+			
+			private function changeR(event:Event):void
+			{
+				var rotation:Float4 = _ptx.material.getFloat4("ParticleShader", "rotation");
+				
+				rotation.x = parseFloat(RMIN.text);
+				rotation.y = parseFloat(RMAX.text);
+				rotation.z = parseFloat(SMIN.text);
+				rotation.w = parseFloat(SMAX.text);
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label x="20" y="61" text="速度"/>
+	<s:Label x="64" y="62" text="min"/>
+	<s:Label x="159" y="62" text="max"/>
+	<s:TextInput id="SMIN" x="88" y="56" width="48" change="changeR(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="SMAX" x="187" y="55" width="48" change="changeR(event)" restrict="0-9 . \-"/>
+	<s:Label x="20" y="24" text="角度"/>
+	<s:Label x="64" y="25" text="min"/>
+	<s:Label x="159" y="25" text="max"/>
+	<s:TextInput id="RMIN" x="88" y="19" width="48" change="changeR(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="RMAX" x="187" y="18" width="48" change="changeR(event)" restrict="0-9 . \-"/>
+</s:Group>

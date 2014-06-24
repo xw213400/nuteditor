@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="260" height="84">
+	
+	<fx:Script>
+		<![CDATA[
+			import scene.logic.World3D;
+			
+			import mx.events.DropdownEvent;
+			
+			import spark.events.TextOperationEvent;
+			
+			public function show(visible:Boolean):void
+			{
+				this.visible = visible;
+				
+				if (World3D.instance == null || World3D.instance.gameScene == null || 
+					World3D.instance.gameScene.terrain == null)
+					return ;
+
+//				ambientStrength.text = World3D.instance.gameScene.terrain.ambientFactor.toPrecision(3);
+//				specularStrength.text = World3D.instance.gameScene.terrain.specularFactor.toPrecision(3);
+			}
+			
+			protected function ambientStrength_changeHandler(event:TextOperationEvent):void
+			{
+				// TODO Auto-generated method stub
+//				World3D.instance.gameScene.terrain.ambientFactor = parseFloat(ambientStrength.text);
+//				World3D.instance.gameScene.terrain.updateMaterial();
+			}
+			
+			protected function specularStrength_changeHandler(event:TextOperationEvent):void
+			{
+				// TODO Auto-generated method stub
+//				World3D.instance.gameScene.terrain.specularFactor = parseFloat(specularStrength.text);
+//				World3D.instance.gameScene.terrain.updateMaterial();
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label width="100%" height="20" backgroundColor="#D2E8F4" text="地表材质" textAlign="center"
+			 verticalAlign="middle"/>
+	<s:Label x="10" y="32" text="Ambient"/>
+	<s:TextInput id="ambientStrength" x="60" y="28" width="43" change="ambientStrength_changeHandler(event)" restrict="0-9 ."/>
+	<s:Label x="10" y="62" text="Specular"/>
+	<s:TextInput id="specularStrength" x="68" y="52" width="80" change="specularStrength_changeHandler(event)" restrict="0-9 ."/>
+	<s:Label x="118" y="32" text="diffuse"/>
+	<s:TextInput x="163" y="28" width="68"/>
+</s:Group>

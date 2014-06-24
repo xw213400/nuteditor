@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="400" height="183">
+	
+	<fx:Script>
+		<![CDATA[
+			import common.logic.SaveResHelper;
+			
+			import model.logic.ModelLogic;
+			
+			import mx.managers.PopUpManager;
+			
+			import nut.core.IAsset;
+			import nut.core.Mesh;
+			import nut.core.Nut;
+			import nut.core.material.Material;
+			import nut.enum.ResType;
+			
+			protected function btn_ok_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				PopUpManager.removePopUp(this);
+				
+				if (mdlPath.text == "" || mdlName.text == "")
+					return ;
+				
+				if (copyTexture.selected && texPath.text == "")
+					return ;
+				
+				if (mdlPath.text.charAt(mdlPath.text.length-1) != "/")
+					mdlPath.text += "/";
+				
+				if (texPath.text.charAt(texPath.text.length-1) != "/")
+					texPath.text += "/"
+				
+				var mdlUrl:String = mdlPath.text+mdlName.text;
+				var sktname:String = Nut.resMgr.solveName(mdlUrl, ResType.MODEL)
+				var mdlname:String = sktname + ".mdl";
+				var mdlpath:String = Nut.resMgr.solvePath(mdlname, ResType.MODEL);
+				
+				if (ModelLogic.instance.daePath != "")
+				{
+					for (var m:Object in ModelLogic.instance.model.meshToBone)
+					{
+						var mat:Material = (m as Mesh).material;
+						var deps:Vector.<IAsset> = mat.dependencies;
+						
+						for each(var asset:IAsset in deps)
+						{
+							if (asset.name == "default")
+								continue;
+							
+							var filename:String = asset.name.split("/").pop();
+							var oldUrl:String = ModelLogic.instance.daePath + filename;
+							var newUrl:String = texPath.text + filename;
+							
+							var file1:File = new File(oldUrl);
+							var file2:File = new File(newUrl);
+							file1.copyTo(file2, true);
+							
+							asset.name = Nut.resMgr.solveName(newUrl, ResType.TEXTURE);
+						}
+					}
+				}
+				
+				if (ModelLogic.instance.model.skeleton.hasAnim())
+				{
+					sktname += ".skt";
+					ModelLogic.instance.model.skeleton.name = sktname;
+					bytes = ModelLogic.instance.model.skeleton.encode();
+					SaveResHelper.saveFile("skeleton/"+sktname, bytes); 
+				}
+				
+				var bytes:ByteArray = ModelLogic.instance.model.encode();
+				SaveResHelper.saveFile("model/"+mdlname, bytes);
+			}
+			
+			public function init():void
+			{
+				var modelName:String = ModelLogic.instance.model.name;
+				
+				if (Nut.resMgr)
+				{
+					if (modelName != "")
+					{
+						var modelPath:String = Nut.resMgr.solvePath(modelName, ResType.MODEL);
+						
+						texPath.text = Nut.resMgr.getResUrl(ResType.TEXTURE) + modelPath;
+						mdlPath.text = Nut.resMgr.getResUrl(ResType.MODEL) + modelPath;
+					}
+					else
+					{
+						texPath.text = Nut.resMgr.getResUrl(ResType.TEXTURE);
+						mdlPath.text = Nut.resMgr.getResUrl(ResType.MODEL);
+					}
+				}
+				else
+				{
+					texPath.text = "";
+					mdlPath.text = "";
+				}
+				
+				mdlName.text = modelName;
+			}
+			
+			protected function chooseMdlPath_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				var file :File = new File(Nut.resMgr.getResUrl(ResType.MODEL));
+				file.addEventListener(Event.SELECT, onSelectMdlFolder);
+				file.browseForDirectory("Choose model folder");
+			}
+			
+			private function onSelectMdlFolder(evt:Event):void
+			{
+				var file:File = evt.target as File;
+				mdlPath.text = file.url + "/";
+				
+				var modelPath:String = Nut.resMgr.solveName(mdlPath.text, ResType.MODEL);
+				
+				updatePath(modelPath);
+			}
+			
+			private function onMdlPathChange(evt:Event):void
+			{
+				var modelPath:String = Nut.resMgr.solveName(mdlPath.text, ResType.MODEL);
+				
+				updatePath(modelPath);
+			}
+			
+			private function updatePath(modelPath:String):void
+			{
+				if (copyTexture.selected)
+				{
+					texPath.text = Nut.resMgr.getResUrl(ResType.TEXTURE) + modelPath;
+				}
+				
+				if (saveSkeleton.selected)
+				{
+					sktPath.text = Nut.resMgr.getResUrl(ResType.SKELETON) + modelPath;
+				}
+			}
+			
+			protected function btn_cancel_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				PopUpManager.removePopUp(this);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label x="19" y="75" text="Texture Path"/>
+	<s:TextInput id="texPath" x="99" y="69" width="213" enabled="false"/>
+	<s:Button x="320" y="71" label="选择..."/>
+	<s:Label x="15" y="129" text="Skeleton Path"/>
+	<s:TextInput id="sktPath" x="100" y="123" width="213" enabled="false"/>
+	<s:Button x="320" y="123" label="选择..."/>
+	<s:TextInput id="mdlPath" x="99" y="39" width="213" change="onMdlPathChange(event)"/>
+	<s:Button id="chooseMdlPath" x="320" y="42" label="选择..." click="chooseMdlPath_clickHandler(event)"/>
+	<s:Button id="btn_ok" x="100" y="152" label="确定" click="btn_ok_clickHandler(event)"/>
+	<s:Button id="btn_cancel" x="243" y="152" label="取消" click="btn_cancel_clickHandler(event)"/>
+	<s:Label x="21" y="45" text="Model Path"/>
+	<s:CheckBox id="copyTexture" x="99" y="99" label="Copy Texture" selected="true"/>
+	<s:Label x="17" y="14" text="Model Name"/>
+	<s:TextInput id="mdlName" x="99" y="10"/>
+	<s:CheckBox id="saveSkeleton" x="215" y="99" label="Save Skeleton"/>
+</s:Group>

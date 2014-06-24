@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:custom="common.ui.custom.*"
+		 width="260" height="182"
+		 creationComplete="creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import common.command.CommandChannel;
+			import common.logic.drag.DragAxis;
+			
+			import mx.events.FlexEvent;
+			
+			import nut.core.Float4;
+			import nut.core.Mesh;
+			import nut.core.Node;
+			import nut.core.Nut;
+			import nut.enum.Culling;
+			import nut.ext.scene.terrain.WalkShape;
+			import nut.util.NutMath;
+			import nut.util.shaders.PickShader;
+			import nut.util.shaders.PositionColorShader;
+			
+			import scene.command.Command;
+			import scene.logic.ArcMesh;
+			import scene.logic.TerrainWireFrame;
+			import scene.logic.World3D;
+			
+			private var _walkShape:WalkShape;
+			private var _arcMesh:ArcMesh;
+			private var _arcMeshes:Dictionary = new Dictionary();
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				sizex.value = 1;
+				sizez.value = 1;
+				
+				CommandChannel.instance.bindHandler(Command.SceneEditor_OPEN_SCENE_OK, onOpenSceneComplete);
+				CommandChannel.instance.bindHandler(Command.DlgWalkShape_PICK_MESH, doPick);
+			}
+			
+			private function onOpenSceneComplete():void
+			{
+				for (var arcm:Object in _arcMeshes)
+				{
+					arcm.parent.removeChild(arcm);
+//					arcm.removeEventListener(MouseEvent3D.MOUSE_DOWN, onMeshMouseDown);
+				}
+				
+				_arcMeshes = new Dictionary();
+				
+				var wss:Vector.<WalkShape> = World3D.instance.gameScene.terrain.walkShapes;
+				for (var i:int=0; i!=wss.length; ++i)
+				{
+					var arcMesh:ArcMesh = addArcMesh(wss[i]);
+					updateArcMesh(arcMesh, wss[i]);
+				}
+				
+				for (var arc:Object in _arcMeshes)
+				{
+					var am:Node = (arc as Node);
+					am.visible = editWS.selected;
+				}
+			}
+			
+			private function onDrag(mesh:Mesh):void
+			{
+				var ws:WalkShape = _arcMeshes[mesh];
+				
+				if (ws == null)
+					return;
+				
+				ws.pos_x = mesh.position.x;
+				ws.pos_y = mesh.position.y;
+				ws.pos_z = mesh.position.z;
+				
+				var rot:Number = mesh.getRotation().y;
+				while (rot < 0)
+					rot += NutMath.TWO_PI;
+				while (rot > NutMath.TWO_PI)
+					rot -= NutMath.TWO_PI;
+				ws.rotation = rot;
+				
+				pickWalkShape(ws);
+			}
+			
+			private function pickWalkShape(ws:WalkShape):void
+			{
+				_walkShape = ws;
+				
+				if (ws != null)
+				{
+					wsx.value = ws.pos_x;
+					wsy.value = ws.pos_y;
+					wsz.value = ws.pos_z;
+					
+					sizex.value = ws.size_x;
+					sizez.value = ws.size_z;
+					
+					arc.value = ws.arc;
+					rot.value = ws.rotation;
+					slope.value = ws.slope;
+				}
+			}
+			
+			public function show(visible:Boolean):void
+			{
+				this.visible = visible;
+			}
+			
+			private function onPosXChange(event:Event):void
+			{
+				if (_walkShape == null || _arcMesh == null)
+					return ;
+				_walkShape.pos_x = wsx.value;
+				var pos:Vector3D = _arcMesh.position;
+				pos.x = wsx.value;
+				_arcMesh.position = pos;
+			}
+			
+			private function onPosYChange(event:Event):void
+			{
+				if (_walkShape == null || _arcMesh == null)
+					return ;
+				_walkShape.pos_y = wsy.value;
+				var pos:Vector3D = _arcMesh.position;
+				pos.y = wsy.value;
+				_arcMesh.position = pos;
+			}
+			
+			private function onPosZChange(event:Event):void
+			{
+				if (_walkShape == null || _arcMesh == null)
+					return ;
+				_walkShape.pos_z = wsz.value;
+				var pos:Vector3D = _arcMesh.position;
+				pos.z = wsz.value;
+				_arcMesh.position = pos;
+			}
+			
+			private function onSizeXChange(event:Event):void
+			{
+				if (_walkShape == null || _arcMesh == null)
+					return ;
+				_walkShape.size_x = sizex.value;
+				var scale:Vector3D = _arcMesh.scale;
+				scale.x = sizex.value;
+				_arcMesh.scale = scale;
+			}
+			
+			private function onSizeZChange(event:Event):void
+			{
+				if (_walkShape == null || _arcMesh == null)
+					return ;
+				_walkShape.size_z = sizez.value;
+				var scale:Vector3D = _arcMesh.scale;
+				scale.y = sizez.value;
+				scale.z = sizez.value;
+				_arcMesh.scale = scale;
+			}
+			
+			private function onArcChange(event:Event):void
+			{
+				if (_walkShape == null || _arcMesh == null)
+					return ;
+				_walkShape.arc = arc.value;
+				_arcMesh.arc = arc.value;
+			}
+			
+			private function onRotChange(event:Event):void
+			{
+				if (_walkShape == null || _arcMesh == null)
+					return ;
+				_walkShape.rotation = rot.value;
+				var rotate:Vector3D = _arcMesh.getRotation();
+				rotate.y = rot.value;
+				_arcMesh.setRotation(rotate)
+			}
+			
+			private function onSlopeChange(event:Event):void
+			{
+				if (_walkShape == null || _arcMesh == null)
+					return ;
+				_walkShape.slope = slope.value;
+				_arcMesh.slope = slope.value;
+			}
+			
+			private function showAllWalkShape(visible:Boolean):void
+			{
+				
+			}
+			
+			protected function addWS_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				if (!editWS.selected)
+					return ;
+				
+				var ws:WalkShape = new WalkShape();
+				
+				World3D.instance.gameScene.terrain.walkShapes.push(ws);
+				addArcMesh(ws, true);
+			}
+			
+			protected function editWSChange(event:Event):void
+			{
+				for (var arc:Object in _arcMeshes)
+				{
+					var am:Node = arc as Node;
+					am.visible = editWS.selected;
+				}
+			}
+			
+			private function doPick(mesh:Mesh):void
+			{
+				if (_arcMeshes[mesh] == null)
+					return ;
+				
+				World3D.instance.dragAxis.pickObject3D(mesh, onDrag,
+					DragAxis.DRAG_MASK_ROT_Y|DragAxis.DRAG_MASK_POS_ALL);
+				
+				var color:Float4 = mesh.material.getFloat4(PositionColorShader.instance.name, "color");
+				color.r = 1;
+				color.g = 1;
+				color.b = 0;
+				color.a = 0.7;
+				pickWalkShape(_arcMeshes[_arcMesh]);
+			}
+			
+			private function addArcMesh(ws:WalkShape, isPick:Boolean=false):ArcMesh
+			{
+				var arcMesh:ArcMesh = new ArcMesh();
+				
+				arcMesh.material.addShader(PositionColorShader.instance);
+				arcMesh.material.addShader(PickShader.getShader(arcMesh));
+				arcMesh.pickMask = World3D.PICK_MASK_ARC;
+				arcMesh.material.setCulling("PickShader", Culling.NONE);
+				arcMesh.material.setCulling(PositionColorShader.instance.name, Culling.NONE);
+				var color:Float4 = arcMesh.material.getFloat4(PositionColorShader.instance.name, "color");
+				color.r = 0.5;
+				color.g = 1;
+				color.b = 0.5;
+				color.a = 0.5;
+				_arcMeshes[arcMesh] = ws;
+				
+				Nut.scene.addChild(arcMesh);
+				
+				updateArcMesh(arcMesh, ws);
+				
+				if (isPick)
+					doPick(arcMesh);
+				
+				return arcMesh;
+			}
+			
+			private function updateArcMesh(am:ArcMesh, ws:WalkShape):void
+			{
+				am.arc = ws.arc;
+				am.slope = ws.slope;
+				am.scale = new Vector3D(ws.size_x, ws.size_z, ws.size_z);
+				am.setRotation(new Vector3D(0, ws.rotation, 0));
+				am.position = new Vector3D(ws.pos_x, ws.pos_y, ws.pos_z);
+			}
+			
+			protected function delWS_clickHandler(event:MouseEvent):void
+			{
+				if (_arcMesh != null && _walkShape != null)
+				{
+//					World3D.instance.dragAxis.cancelPick(_arcMesh);
+//					_arcMesh.parent.removeChild(_arcMesh);
+//					_arcMesh.removeEventListener(MouseEvent3D.MOUSE_DOWN, onMeshMouseDown);
+					_arcMesh = null;
+					
+					var wss:Vector.<WalkShape> = World3D.instance.gameScene.terrain.walkShapes;
+					var idx:int = wss.indexOf(_walkShape);
+					if (idx == -1)
+						throw new Error("行走区数据错误");
+					wss.splice(idx, 1);
+					_walkShape = null;
+				}
+			}
+			
+			protected function showGridChange(event:Event):void
+			{
+				TerrainWireFrame.instance.showGrid(showGrid.selected, true);
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<mx:Canvas width="100%" height="100%" backgroundColor="#FFFFFF">
+		<s:Label x="22" y="34" text="x"/>
+		<s:Label x="22" y="62" text="y"/>
+		<s:Label x="22" y="90" text="z"/>
+		<s:Label x="12" y="120" text="旋转"/>
+		<s:Label x="134" y="34" text="size x"/>
+		<s:Label x="134" y="62" text="size z"/>
+		<s:Label x="134" y="120" text="弧度"/>
+		<custom:NoWheelNumericStepper id="wsx" x="39" y="27" width="77" maximum="1000" minimum="-1000"
+						  stepSize="0.1" change="onPosXChange(event)"/>
+		<custom:NoWheelNumericStepper id="wsy" x="39" y="56" width="77" maximum="1000" minimum="-1000"
+						  stepSize="0.1" change="onPosYChange(event)"/>
+		<custom:NoWheelNumericStepper id="wsz" x="39" y="85" width="77" maximum="1000" minimum="-1000"
+						  stepSize="0.1" change="onPosZChange(event)"/>
+		<custom:NoWheelNumericStepper id="arc" x="173" y="114" width="77" maximum="3.1" minimum="-3.1"
+						  stepSize="0.1" change="onArcChange(event)"/>
+		<custom:NoWheelNumericStepper id="slope" x="173" y="85" width="77" maximum="1.5" minimum="-1.5"
+						  stepSize="0.1" change="onSlopeChange(event)"/>
+		<custom:NoWheelNumericStepper id="sizex" x="173" y="27" width="77" maximum="100" minimum="-100"
+						  stepSize="0.1" change="onSizeXChange(event)"/>
+		<custom:NoWheelNumericStepper id="sizez" x="173" y="56" width="77" maximum="100" minimum="-100"
+						  stepSize="0.1" change="onSizeZChange(event)"/>
+		<custom:NoWheelNumericStepper id="rot" x="39" y="114" width="77" maximum="360" minimum="0" stepSize="1" change="onRotChange(event)"/>
+		<mx:HRule x="10" y="142" width="240" height="6" chromeColor="#010000"/>
+		<s:Button id="addWS" x="62" y="152" width="48" label="添加" click="addWS_clickHandler(event)"/>
+		<s:Label width="100%" height="20" backgroundColor="#D2E8F4" text="行走区" textAlign="center"
+				 verticalAlign="middle"/>
+		<s:CheckBox id="editWS" x="12" y="152" label="编辑" change="editWSChange(event)"/>
+		<s:Button id="delWS" x="117" y="152" width="47" label="删除" click="delWS_clickHandler(event)"/>
+		<s:Label x="134" y="91" text="倾斜"/>
+		<s:CheckBox id="showGrid" x="182" y="152" label="显示网格" change="showGridChange(event)"/>
+	</mx:Canvas>
+</s:Group>

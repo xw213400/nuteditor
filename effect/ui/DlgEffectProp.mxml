@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="250" height="500">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import nut.ext.effect.EffectNode;
+
+			private var _effect:EffectNode;
+			
+			public function show(data:EffectNode) :void
+			{
+				this.visible = true;
+				
+				_effect = data;
+				LT.text = _effect.lifeTime.toString();
+				EN.text = _effect.name;
+			}
+			
+			private function changeLT(event:Event):void
+			{
+				_effect.lifeTime = parseFloat(event.target.text);
+			}
+			private function changeEN(event:Event):void
+			{
+				_effect.name = event.target.text;
+			}
+		]]>
+	</fx:Script>
+	<s:Label x="27" y="44" text="生存时间"/>
+	<s:TextInput id="LT" x="96" y="39" change="changeLT(event)" restrict="0-9 ."/>
+	<s:Label x="27" y="15" text="name"/>
+	<s:TextInput id="EN" x="96" y="10" change="changeEN(event)"/>
+</s:Group>

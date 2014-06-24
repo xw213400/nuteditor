@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 xmlns:ui="model.ui.*" 
+		 creationComplete="creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import common.command.CommandChannel;
+			import model.command.Command;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+
+			import nut.ext.model.Model;
+			
+			import spark.events.GridSelectionEvent;
+			
+			[Bindable]
+			private var _modelData :ArrayCollection = new ArrayCollection([]);
+			
+			private var _model	:Model = null;
+			
+			protected function onSelectChange(event:GridSelectionEvent):void
+			{
+				// TODO Auto-generated method stub
+				var col:int = modelData.selectedCell.columnIndex;
+				var row:int = modelData.selectedCell.rowIndex;
+				var data:Object = _modelData.getItemAt(row);
+				
+				if (col == 0)
+				{
+					dlgMeshMat.setMesh(data.meshData);
+				}
+				else
+				{
+					dlgMeshMat.setMaterial(data.meshData.material);
+				}
+				
+				dlgMeshMat.visible = true;
+			}
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				CommandChannel.instance.bindHandler(Command.ModelLogic_MODEL_READY, onModelReady);
+				CommandChannel.instance.bindHandler(Command.DlgMaterial_CHANGE, onMaterialChange);
+				CommandChannel.instance.bindHandler(Command.DlgMaterial_SAVE, onMaterialSave);
+			}
+			
+			private function onMaterialChange():void
+			{
+				var col:int = modelData.selectedCell.columnIndex;
+				var row:int = modelData.selectedCell.rowIndex;
+				var data:Object = _modelData.getItemAt(row);
+				
+				data.material = "*" + data.meshData.material.name;
+				_modelData.refresh();
+			}
+			
+			private function onMaterialSave(matName:String):void
+			{
+				var col:int = modelData.selectedCell.columnIndex;
+				var row:int = modelData.selectedCell.rowIndex;
+				var save:Object = _modelData.getItemAt(row);
+				
+				for (var i:int = 0; i != _modelData.length; ++i)
+				{
+					if (i == row)
+						continue;
+					
+					var data:Object = _modelData.getItemAt(i);
+					if (data.mateiral == matName)
+					{
+						data.meshData.mateiral.copyFrom(save.meshData.mateiral);
+					}
+				}
+				
+				save.material = matName;
+				_modelData.refresh();
+			}
+			
+			private function onModelReady(model:Model):void
+			{
+				_model = model;
+				_modelData.removeAll();
+				
+				for (var mesh:Object in _model.meshToBone)
+				{
+					_modelData.addItem({mesh:mesh.extra, material:mesh.material.name, meshData:mesh});
+				}
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<mx:VDividedBox width="100%" height="100%">
+		<s:DataGrid id="modelData" width="100%" dataProvider="{_modelData}" selectionMode="singleCell" selectionChange="onSelectChange(event)">
+			<s:columns>
+				<s:ArrayList>
+					<s:GridColumn headerText="Mesh" dataField="mesh"/>
+					<s:GridColumn headerText="Material" dataField="material"/>
+				</s:ArrayList>
+			</s:columns>
+		</s:DataGrid>
+		<ui:DlgMeshMat id="dlgMeshMat" width="100%" height="100%" visible="false"/>
+	</mx:VDividedBox>
+</s:Group>

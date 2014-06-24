@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx">
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import nut.core.Float4;
+			import nut.ext.effect.particle.ParticleSystem;
+			import nut.util.NutMath;
+			
+			private var _ptx:ParticleSystem;
+			
+			public function show(ptx:ParticleSystem):void
+			{
+				if (ptx == null || ptx.material.getProperty("ParticleShader", "colorMin") == null)
+					return ;
+				
+				this.visible = true;
+				_ptx = ptx;
+				
+				updateUI();
+			}
+			
+			private function updateUI():void
+			{
+				var colorMin:Float4 = _ptx.material.getFloat4("ParticleShader", "colorMin");
+				var colorMax:Float4 = _ptx.material.getFloat4("ParticleShader", "colorMax");
+				
+				CMINR.text = colorMin.r.toPrecision(3);
+				CMING.text = colorMin.g.toPrecision(3);
+				CMINB.text = colorMin.b.toPrecision(3);
+				CMINA.text = colorMin.a.toPrecision(3);
+				
+				CMAXR.text = colorMax.r.toPrecision(3);
+				CMAXG.text = colorMax.g.toPrecision(3);
+				CMAXB.text = colorMax.b.toPrecision(3);
+				CMAXA.text = colorMax.a.toPrecision(3);
+				
+				MINCOLOR.selectedColor = colorMin.getAsARGB();
+				MAXCOLOR.selectedColor = colorMax.getAsARGB();
+			}
+			
+			private function changeCMIN(event:Event):void
+			{
+				var colorMin:Float4 = _ptx.material.getFloat4("ParticleShader", "colorMin");
+				
+				colorMin.r = parseFloat(CMINR.text);
+				colorMin.g = parseFloat(CMING.text);
+				colorMin.b = parseFloat(CMINB.text);
+				colorMin.a = parseFloat(CMINA.text);
+				
+				updateUI();
+			}
+			
+			private function changeCMAX(event:Event):void
+			{
+				var colorMax:Float4 = _ptx.material.getFloat4("ParticleShader", "colorMax");
+				
+				colorMax.r = parseFloat(CMAXR.text);
+				colorMax.g = parseFloat(CMAXG.text);
+				colorMax.b = parseFloat(CMAXB.text);
+				colorMax.a = parseFloat(CMAXA.text);
+				
+				updateUI();
+			}
+			
+			private function changeMINCOLOR(event:Event):void
+			{
+				var color:Float4 = NutMath.parseARGB(MINCOLOR.selectedColor);
+				var colorMin:Float4 = _ptx.material.getFloat4("ParticleShader", "colorMin");
+
+				colorMin.copy(color);
+				updateUI();
+			}
+			
+			private function changeMAXCOLOR(event:Event):void
+			{
+				var color:Float4 = NutMath.parseARGB(MAXCOLOR.selectedColor);
+				var colorMax:Float4 = _ptx.material.getFloat4("ParticleShader", "colorMax");
+				
+				colorMax.copy(color);
+				updateUI();
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label x="23" y="24" text="最小颜色"/>
+	<s:TextInput id="CMINR" x="99" y="18" width="41" change="changeCMIN(event)" restrict="0-9 ."/>
+	<s:TextInput id="CMINB" x="99" y="53" width="41" change="changeCMIN(event)" restrict="0-9 ."/>
+	<s:TextInput id="CMING" x="187" y="17" width="41" change="changeCMIN(event)" restrict="0-9 ."/>
+	<s:TextInput id="CMINA" x="187" y="53" width="41" change="changeCMIN(event)" restrict="0-9 ."/>
+	<s:Label x="85" y="27" text="R"/>
+	<s:Label x="174" y="22" text="G"/>
+	<s:Label x="87" y="61" text="B"/>
+	<s:Label x="174" y="61" text="A"/>
+	<s:Label x="23" y="107" text="最大颜色"/>
+	<s:TextInput id="CMAXR" x="99" y="101" width="41" change="changeCMAX(event)" restrict="0-9 ."/>
+	<s:TextInput id="CMAXA" x="187" y="136" width="41" change="changeCMAX(event)" restrict="0-9 ."/>
+	<s:TextInput id="CMAXB" x="99" y="136" width="41" change="changeCMAX(event)" restrict="0-9 ."/>
+	<s:TextInput id="CMAXG" x="187" y="100" width="41" change="changeCMAX(event)" restrict="0-9 ."/>
+	<s:Label x="85" y="110" text="R"/>
+	<s:Label x="174" y="105" text="G"/>
+	<s:Label x="87" y="144" text="B"/>
+	<s:Label x="174" y="144" text="A"/>
+	<mx:ColorPicker id="MINCOLOR" x="34" y="51" change="changeMINCOLOR(event)"/>
+	<mx:ColorPicker id="MAXCOLOR" x="34" y="134" change="changeMAXCOLOR(event)"/>
+</s:Group>

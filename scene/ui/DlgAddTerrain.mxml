@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="400" height="300">
+	
+	<fx:Script>
+		<![CDATA[
+			import common.command.CommandChannel;
+			import scene.command.Command;
+			
+			import mx.managers.PopUpManager;
+			
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				var x:int = parseInt(chunks_x.text);
+				var z:int = parseInt(chunks_z.text);
+				
+				if (isNaN(x) || isNaN(y))
+					return ;
+				
+				if (x <= 0 || z <= 0)
+					return ;
+				
+				if (x > 30 || z > 30)
+					return ;
+				
+				PopUpManager.removePopUp(this);
+				CommandChannel.instance.postCommand(Command.SceneEditor_TERRAIN_SETTING_OK, x, z);
+			}
+			
+			protected function button2_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				PopUpManager.removePopUp(this);
+			}
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	
+	<s:Label x="0" y="12" text="Chunk数 X:"/>
+	<s:TextInput id="chunks_x" x="68" y="5" width="30"/>
+	<s:Label x="116" y="12" text="Z:"/>
+	<s:TextInput id="chunks_z" x="130" y="5" width="30"/>
+	<s:Button x="3" y="45" label="确定" click="button1_clickHandler(event)"/>
+	<s:Button x="90" y="45" label="取消" click="button2_clickHandler(event)"/>
+</s:Group>

@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 width="260" height="490" creationComplete="creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			import nut.core.Float4;
+			import nut.core.Nut;
+			import nut.core.NutTexture;
+			import nut.enum.Blending;
+			import nut.enum.ResType;
+			import nut.ext.effect.EffectElem;
+			import nut.ext.effect.particle.BillboardSet;
+			import nut.ext.effect.particle.ParticleSystem;
+			import nut.util.BytesLoader;
+			import nut.util.shaders.particle.ParticleShader;
+			
+			[Bindable]
+			private var _directionType:ArrayCollection = new ArrayCollection( 
+				[
+					{label:"Z轴朝摄像机",	data:BillboardSet.DT_ORIENTED_CAMERA},  
+					{label:"Y轴朝运动方向",	data:BillboardSet.DT_ORIENTED_SELF},  
+					{label:"Y轴朝设定方向",	data:BillboardSet.DT_ORIENTED_COMMON},
+					{label:"Z轴朝运动方向",	data:BillboardSet.DT_PERPENDICULAR_SELF},
+					{label:"Z轴朝设定方向",	data:BillboardSet.DT_PERPENDICULAR_COMMON}
+				]);
+			
+			[Bindable]
+			private var _blend:ArrayCollection = new ArrayCollection( 
+				[
+					{label:"DEST_ALPHA",	data:Blending.DESTINATION_ALPHA},  
+					{label:"DEST_COLOR",	data:Blending.DESTINATION_COLOR},  
+					{label:"ONE",			data:Blending.ONE},
+					{label:"1-DEST_ALPHA",	data:Blending.ONE_MINUS_DESTINATION_ALPHA},
+					{label:"1-DEST_COLOR",	data:Blending.ONE_MINUS_DESTINATION_COLOR},
+					{label:"1-SRC_ALPHA",	data:Blending.ONE_MINUS_SOURCE_ALPHA},  
+					{label:"1-SRC_COLOR",	data:Blending.ONE_MINUS_SOURCE_COLOR},  
+					{label:"SRC_ALPHA",		data:Blending.SOURCE_ALPHA},
+					{label:"SRC_COLOR",		data:Blending.SOURCE_COLOR},
+					{label:"ZERO",			data:Blending.ZERO}
+				]);
+			
+			[Bindable]
+			private var _priority :ArrayCollection = new ArrayCollection( 
+				[
+					{label:"0",	data:0},
+					{label:"1",	data:1},  
+					{label:"2",	data:2},  
+					{label:"3",	data:3},
+					{label:"4",	data:4},
+					{label:"5",	data:5},  
+					{label:"6",	data:6},
+					{label:"7",	data:7}
+				]);
+			
+			private var _ptx:EffectElem;
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public function show(ptx:EffectElem):void
+			{
+				this.visible = true;
+				_ptx = ptx;
+				
+				var pos:Vector3D = _ptx.position;
+				var rot:Vector3D = _ptx.getRotation();
+				var sca:Vector3D = _ptx.scale;
+				
+				PX.text = pos.x.toPrecision(3); PY.text = pos.y.toPrecision(3); PZ.text = pos.z.toPrecision(3);
+				RX.text = rot.x.toPrecision(3); RY.text = rot.y.toPrecision(3); RZ.text = rot.z.toPrecision(3);
+				SX.text = sca.x.toPrecision(3); SY.text = sca.y.toPrecision(3); SZ.text = sca.z.toPrecision(3);
+				
+				blendSrc.selectedIndex = _ptx.material.getBlendSrc("ParticleShader");
+				blendDst.selectedIndex = _ptx.material.getBlendDst("ParticleShader");
+				dt.selectedIndex = _ptx.material.getInt("ParticleShader", "directionType");
+				
+				var dtv:int = _ptx.material.getInt("ParticleShader", "directionType");
+				if (dtv != BillboardSet.DT_ORIENTED_COMMON && dtv != BillboardSet.DT_PERPENDICULAR_COMMON)
+				{
+					cdx.enabled = false;
+					cdy.enabled = false;
+					cdz.enabled = false;
+				}
+				else
+				{
+					var cdv:Float4 = _ptx.material.getFloat4("ParticleShader", "commonDirection");
+					cdx.text = cdv.x.toPrecision(3);
+					cdy.text = cdv.y.toPrecision(3);
+					cdz.text = cdv.z.toPrecision(3);
+				}
+				
+				islocal.selected = _ptx.localSpace;
+				speedFactor.text = _ptx.speedFactor.toPrecision(3);
+				poolSize.text = _ptx.poolSize.toString();
+				minLife.text = _ptx.emitter.minLife.toPrecision(3);
+				maxLife.text = _ptx.emitter.maxLife.toPrecision(3);
+				minduration.text = _ptx.emitter.durationMin.toPrecision(3);
+				maxduration.text = _ptx.emitter.durationMax.toPrecision(3);
+				delayTime.text = _ptx.emitter.repeatDelay.toPrecision(3);
+				emitspeed.text = _ptx.emitter.emissionRate.toPrecision(3);
+			}
+			
+			private function onChooseTexture():void
+			{
+				var file:File = new File();
+				file.browseForOpen("选择图片",  [new FileFilter("图片文件(*.png;*.jpg)","*.png;*.jpg")]);
+				file.addEventListener(Event.SELECT, onSelect);
+			}
+			
+			private function onSelect(e:Event):void
+			{
+				var path:String = (e.target as File).url;
+				var name:String = Nut.resMgr.solveName(path, ResType.TEXTURE);
+				
+				if (name == "")
+					return ;
+				
+				TEXTURE.text = name;
+				IMAGE.source = path;
+				
+				_ptx.material.getProperty("ParticleShader", "diffuseMap").value = Nut.resMgr.loadTexture(name);
+			}
+			
+			private function changeCD(evt:Event):void
+			{
+				var dt:int = _ptx.material.getInt("ParticleShader", "directionType");
+				if (dt != BillboardSet.DT_ORIENTED_COMMON && dt != BillboardSet.DT_PERPENDICULAR_COMMON)
+					return ;
+				
+				var cd:Float4 = _ptx.material.getFloat4("ParticleShader", "commonDirection");
+				
+				cd.x = parseFloat(cdx.text);
+				cd.y = parseFloat(cdy.text);
+				cd.z = parseFloat(cdz.text);
+				
+				cd.normalize();
+			}
+			
+			private function changeDT(event:Event):void
+			{
+				_ptx.material.getProperty("ParticleShader", "directionType").value = dt.selectedItem.data;
+				_ptx.material.refreshShader(ParticleShader.getShader(_ptx));
+				
+				var dtv:int = dt.selectedItem.data;
+				if (dtv == BillboardSet.DT_ORIENTED_COMMON || dtv == BillboardSet.DT_PERPENDICULAR_COMMON)
+				{
+					cdx.enabled = true;
+					cdy.enabled = true;
+					cdz.enabled = true;
+					
+					var cdv:Float4 = _ptx.material.getFloat4("ParticleShader", "commonDirection");
+					cdx.text = cdv.x.toPrecision(3);
+					cdy.text = cdv.y.toPrecision(3);
+					cdz.text = cdv.z.toPrecision(3);
+				}
+			}
+			
+			private function changeCM(evt:Event):void
+			{
+//				_data.colorModulate = evt.target.text;
+			}
+			
+			private function changeBlend(evt:Event):void
+			{
+				_ptx.material.setBlendMode("ParticleShader",blendSrc.selectedItem.data, blendDst.selectedItem.data);
+			}
+			
+			private function changeDelayT(evt:Event):void
+			{
+				_ptx.emitter.repeatDelay = evt.target.text;
+				_ptx.emitter.initRemainTime();
+			}
+			private function changeMaxDT(evt:Event):void
+			{
+				_ptx.emitter.durationMax = evt.target.text;
+				_ptx.emitter.initRemainTime();
+			}
+			
+			private function changeMinDT(evt:Event):void
+			{
+				_ptx.emitter.durationMin = evt.target.text;
+				_ptx.emitter.initRemainTime();
+			}
+			
+			private function changeES(evt:Event):void
+			{
+				_ptx.emitter.emissionRate = evt.target.text;
+			}
+			
+			private function changeMaxLife(evt:Event):void
+			{
+				_ptx.emitter.maxLife = evt.target.text;
+			}
+			private function changeMinLife(evt:Event):void
+			{
+				_ptx.emitter.minLife = evt.target.text;
+			}
+			
+			private function changeParticlePool(evt:Event):void
+			{
+				var sf:uint = evt.target.text;
+				if (sf == 0)
+					sf = 1;
+				if (sf > 10000)
+					sf = 10000;
+				_ptx.poolSize = sf;
+			}
+			
+			private function changeSpeedFactor(evt:Event):void
+			{
+				_ptx.speedFactor = evt.target.text;
+			}
+			
+			private function changeIsLocal(evt:Event):void
+			{
+				_ptx.localSpace = islocal.selected;
+				_ptx.material.refreshShader(ParticleShader.getShader(_ptx));
+			}
+			
+			private function changeTransform(evt:Event):void
+			{
+				var pos:Vector3D = new Vector3D(parseFloat(PX.text), parseFloat(PY.text), parseFloat(PZ.text));
+				var rot:Vector3D = new Vector3D(parseFloat(RX.text), parseFloat(RY.text), parseFloat(RZ.text));
+				var sca:Vector3D = new Vector3D(parseFloat(SX.text), parseFloat(SY.text), parseFloat(SZ.text));
+				
+				_ptx.position = pos;
+				_ptx.setRotation(rot);
+				_ptx.scale = sca;
+			}
+			
+			private function changeST(evt:Event):void
+			{
+//				_data.startTime = event.target.text;
+			}
+			
+			private function changeFG(evt:Event):void
+			{
+//				_data.followGround = FG.selected;
+			}
+			
+			private function changePR(evt:Event):void
+			{
+//				_data.priority = -(ComboBox(event.target).selectedItem.data) - 1000000;
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label x="10" y="104" text="公共方向" textAlign="right"/>
+	<s:Label x="173" y="136" text="亮度"/>
+	<s:TextInput id="cdx" x="70" y="100" width="50" textAlign="right" change="changeCD(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="cdy" x="135" y="100" width="50" textAlign="right" change="changeCD(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="cdz" x="200" y="100" width="50" textAlign="right" change="changeCD(event)" restrict="0-9 . \-"/>
+	<s:Label x="60" y="106" text="X" textAlign="right"/>
+	<s:Label x="125" y="106" text="Y" textAlign="right"/>
+	<s:Label x="190" y="107" text="Z" textAlign="right"/>
+	<s:ComboBox id="dt" x="65" y="130" width="100" dataProvider="{_directionType}" close="changeDT(event)"/>
+	<s:Label x="10" y="137" text="方向类型"/>
+	<s:Label x="10" y="169" text="BlendSrc"/>
+	<s:ComboBox id="blendSrc" x="65" y="160" width="100" close="changeBlend(event)"
+				dataProvider="{_blend}"/>
+	<s:Label x="10" y="201" text="BlendDst"/>
+	<s:ComboBox id="blendDst" x="65" y="191" width="100" close="changeBlend(event)"
+				dataProvider="{_blend}"/>
+	<s:TextInput id="cm" x="200" y="130" width="50" change="changeCM(event)" restrict="0-9 ."/>
+	<s:TextInput id="TEXTURE" x="82" y="222" width="168" editable="false"/>
+	<s:Button id="CHOOSE" x="173" y="252" label="选择纹理..." click="onChooseTexture()"/>
+	<s:Image id="IMAGE" x="10" y="221" width="64" height="64" backgroundColor="0x0"/>
+	<s:Label x="35" y="420" text="发射速度"/>
+	<s:Label x="148" y="390" text="最大寿命"/>
+	<s:Label x="148" y="361" text="最小寿命"/>
+	<s:Label x="148" y="420" text="暂停间隔"/>
+	<s:Label x="12" y="392" text="最大持续时间"/>
+	<s:Label x="12" y="360" text="最小持续时间"/>
+	<s:TextInput id="emitspeed" x="90" y="415" width="50" change="changeES(event)" restrict="0-9 ."/>
+	<s:TextInput id="maxLife" x="200" y="385" width="50" change="changeMaxLife(event)" restrict="0-9 ."/>
+	<s:TextInput id="minLife" x="200" y="355" width="50" change="changeMinLife(event)" restrict="0-9 ."/>
+	<s:TextInput id="delayTime" x="200" y="415" width="50" change="changeDelayT(event)" restrict="0-9 ."/>
+	<s:TextInput id="maxduration" x="90" y="385" width="50" change="changeMaxDT(event)" restrict="0-9 ."/>
+	<s:TextInput id="minduration" x="90" y="355" width="50" change="changeMinDT(event)" restrict="0-9 ."/>
+	<s:TextInput id="poolSize" x="90" y="295" width="50" change="changeParticlePool(event)" restrict="0-9"/>
+	<s:Label x="48" y="301" text="粒子数"/>
+	<s:Label x="36" y="331" text="速度因子"/>
+	<s:TextInput id="speedFactor" x="90" y="325" width="50" change="changeSpeedFactor(event)" restrict="0-9 ."/>
+	<s:CheckBox id="islocal" x="176" y="191" label="局部粒子"  click="changeIsLocal(event)"/>
+	<s:Label x="10" y="18" text="位置"/>
+	<s:TextInput id="PX" x="70" y="10" width="50" change="changeTransform(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="PY" x="135" y="10" width="50" change="changeTransform(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="PZ" x="200" y="10" width="50" change="changeTransform(event)" restrict="0-9 . \-"/>
+	<s:Label x="10" y="74" text="旋转"/>
+	<s:TextInput id="RX" x="70" y="70" width="50" change="changeTransform(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="RY" x="135" y="70" width="50" change="changeTransform(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="RZ" x="200" y="70" width="50" change="changeTransform(event)" restrict="0-9 . \-"/>
+	<s:Label x="10" y="46" text="缩放"/>
+	<s:TextInput id="SX" x="70" y="40" width="50" change="changeTransform(event)" restrict="0-9 ."/>
+	<s:TextInput id="SY" x="135" y="40" width="50" change="changeTransform(event)" restrict="0-9 ."/>
+	<s:TextInput id="SZ" x="200" y="40" width="50" change="changeTransform(event)" restrict="0-9 ."/>
+	<s:Label x="190" y="47" text="Z"/>
+	<s:Label x="125" y="48" text="Y"/>
+	<s:Label x="60" y="45" text="X"/>
+	<s:Label x="190" y="77" text="Z"/>
+	<s:Label x="125" y="76" text="Y"/>
+	<s:Label x="60" y="76" text="X"/>
+	<s:Label x="190" y="17" text="Z"/>
+	<s:Label x="125" y="18" text="Y"/>
+	<s:Label x="60" y="17" text="X"/>
+	<s:Label x="149" y="332" text="开始时间"/>
+	<s:TextInput id="ST" x="200" y="325" width="50" change="changeST(event)" restrict="0-9 ."/>
+	<s:CheckBox id="FG" x="176" y="164" label="跟随地表" click="changeFG(event)"/>
+	<s:Label x="149" y="302" text="渲染排序"/>
+	<s:ComboBox id="PRIORITY" x="200" y="295" width="50" dataProvider="{_priority}" close="changePR(event)"/>
+</s:Group>

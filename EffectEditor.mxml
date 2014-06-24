@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   width="960" height="640" showStatusBar="false" 
+					   xmlns:ui="effect.ui.*" backgroundAlpha="0"
+					   minWidth="300" minHeight="200" frameRate="60"
+					   resize="onResize(event)" addedToStage="addedToStageHandler(event)" 
+					   creationComplete="onCreationComplete(event)">
+	<fx:Script>
+		<![CDATA[
+			import common.command.CommandChannel;
+			import common.command.CommandConst;
+			import common.logic.LoadResHelper;
+			import common.logic.SaveResHelper;
+			import common.ui.DlgBaseUrl;
+			import common.ui.DlgEnvLight;
+			
+			import effect.command.Command;
+			import effect.logic.World3D;
+			import effect.ui.DlgAddComponent;
+			
+			import mx.collections.XMLListCollection;
+			import mx.events.FlexEvent;
+			import mx.events.MenuEvent;
+			import mx.events.ResizeEvent;
+			import mx.managers.PopUpManager;
+			
+			import nut.core.Nut;
+			import nut.ext.effect.EffectNode;
+			import nut.util.Monitor;
+			
+			[Bindable]
+			private var _menuData:XMLListCollection = new XMLListCollection(
+				<>
+				<menuitem label="特效">
+					<menuitem label="新建" data="new_effect"/>
+					<menuitem label="打开" data="open_effect"/>
+					<menuitem label="保存" data="save_effect"/>
+				</menuitem>
+				<menuitem label="Settings">
+					<menuitem label="light" data="set_light"/>
+				</menuitem>
+				</>);
+			
+			private var _dlgEnvLight:DlgEnvLight = null;
+			
+			private function menuHandler(evt:MenuEvent):void
+			{ 
+				if (evt.item.@data == "new_effect")
+					createEffect();
+				else if (evt.item.@data == "open_effect")
+					openEffect();
+				else if (evt.item.@data == "save_effect")
+					saveEffect();
+				else if (evt.item.@data == "set_light")
+					_dlgEnvLight.show(World3D.instance);
+			}
+			
+			private function createEffect():void
+			{
+				CommandChannel.instance.postCommand(Command.DlgEffectTree_NEW_EFFECT);
+			}
+			
+			private function openEffect():void
+			{
+				LoadResHelper.load("open eff file", new FileFilter("特效文件(*.eff)","*.eff"), onLoadEffectComplete);
+			}
+			
+			private function saveEffect():void
+			{
+				var eff:EffectNode = World3D.instance.effect;
+				if (eff == null)
+					return ;
+				var bytes:ByteArray = eff.encode();
+				SaveResHelper.saveFile("effect/"+eff.name, bytes);
+			}
+			
+			private function onLoadEffectComplete(data:ByteArray, url:String):void
+			{				
+				CommandChannel.instance.postCommand(Command.DlgEffectTree_OPEN_EFFECT, data, url);
+			}
+			
+			protected function onResize(event:ResizeEvent):void
+			{
+				// TODO Auto-generated method stub
+				if (!stage)
+					return;
+				
+				mouseArea.width = uiWorld3D.width = stage.stageWidth-260;
+				mouseArea.height= uiWorld3D.height= stage.stageHeight-20;
+				World3D.instance.resize(mouseArea.width, mouseArea.height);
+			}
+			
+			protected function addedToStageHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				var iniFile :File = File.applicationStorageDirectory.resolvePath("nut/ModelEditor.ini");
+				if (iniFile.exists)
+				{
+					var fileStream :FileStream = new FileStream();
+					fileStream.addEventListener(Event.COMPLETE, onSettingsFileComplete);
+					fileStream.openAsync(iniFile, FileMode.READ);
+				}
+				else
+				{
+					var dlgSettings:DlgBaseUrl = new DlgBaseUrl();
+					PopUpManager.addPopUp(dlgSettings, this, true);
+					PopUpManager.centerPopUp(dlgSettings);
+				}
+			}
+			
+			private function onSettingsFileComplete(evt:Event):void
+			{
+				var data:ByteArray = new ByteArray();
+				var fileStream :FileStream = evt.target as FileStream;
+				
+				fileStream.readBytes(data, 0, fileStream.bytesAvailable);
+				fileStream.close();
+				
+				createWorld3D(data.readUTF());
+			}
+			
+			private function createWorld3D(workFolder:String):void
+			{
+				new World3D(workFolder, stage, mouseArea);
+				uiWorld3D.addChild(Nut.scene.viewport.sprite);
+				Nut.scene.viewport.resetPosition(uiWorld3D.x, uiWorld3D.y);
+				
+				stage.addChildAt(Monitor.instance, 0);
+				Monitor.instance.x = 260;
+				Monitor.instance.y = 20;
+			}
+			
+			protected function onCreationComplete(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				CommandChannel.instance.bindHandler(CommandConst.DlgBaseUrl_OK, onSettingsOK);
+				
+				_dlgEnvLight = new DlgEnvLight();
+				_dlgEnvLight.x = 260;
+				_dlgEnvLight.y = 20;
+				_dlgEnvLight.visible = false;
+				this.addElement(_dlgEnvLight);
+				
+				var dlgComp:DlgAddComponent = new DlgAddComponent();
+				this.addElement(dlgComp);
+				dlgComp.x = 260;
+				dlgComp.y = 20;
+			}
+			
+			private function onSettingsOK(workFolder:String):void
+			{
+				var iniFile :File = File.applicationStorageDirectory.resolvePath("nut/ModelEditor.ini");
+				var fs:FileStream = new FileStream();
+				fs.open(iniFile, FileMode.WRITE);
+				fs.position = 0;
+				fs.writeUTF(workFolder);
+				fs.close();
+				
+				createWorld3D(workFolder);
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<mx:MenuBar width="100%" height="20" dataProvider="{_menuData}" labelField="@label" itemClick="menuHandler(event)"/>
+	<s:Group x="260" y="20" width="700" height="620" id="mouseArea"/>
+	<mx:UIComponent x="260" y="20" width="700" height="620" id="uiWorld3D"/>
+	<mx:VDividedBox y="20" width="260" height="100%">
+		<ui:DlgEffectTree width="260" height="100%" id="dlgEffect"/>
+		<ui:DlgProp width="260" height="100%" id="dlgProp"/>
+	</mx:VDividedBox>
+</s:WindowedApplication>

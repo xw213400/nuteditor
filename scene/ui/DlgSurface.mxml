@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" 
+		 xmlns:custom="common.ui.custom.*"
+		 width="260" height="400"
+		 creationComplete="creationCompleteHandler(event)">
+	
+	<fx:Script>
+		<![CDATA[
+			import common.command.CommandChannel;
+			
+			import mx.events.FlexEvent;
+			
+			import nut.core.Nut;
+			import nut.enum.ResType;
+			import nut.ext.scene.terrain.Chunk;
+			
+			import scene.command.Command;
+			import scene.logic.Brush;
+			import scene.logic.World3D;
+			import scene.scene.terrain.TerrainEd;
+			
+			private var _chunk		:Chunk = null;
+			private var _currBtn	:Button = null;
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				CommandChannel.instance.bindHandler(Command.DlgSurface_PICK_CHUNK, onPickChunk);
+			}
+			
+			private function onPickChunk(chunk:Chunk):void
+			{
+				if (chunk == null)
+					return ;
+				
+				_chunk = chunk;
+				
+				idx_x.text = _chunk.idx_x.toString();
+				idx_z.text = _chunk.idx_z.toString();
+				
+				Brush.instance.currChunk = _chunk;
+				
+				img1.source = Nut.resMgr.baseUrl + "texture/"+_chunk.getSurfacePath(0);
+				text1.text = _chunk.getSurfacePath(0);
+				
+				img2.source = Nut.resMgr.baseUrl + "texture/"+_chunk.getSurfacePath(1);
+				text1.text = _chunk.getSurfacePath(1);
+				
+				img3.source = Nut.resMgr.baseUrl + "texture/"+_chunk.getSurfacePath(2);
+				text1.text = _chunk.getSurfacePath(2);
+
+				img4.source = Nut.resMgr.baseUrl + "texture/"+_chunk.getSurfacePath(3);
+				text1.text = _chunk.getSurfacePath(3);
+				
+				uv1.value = _chunk.uvRepeats.x;
+				uv2.value = _chunk.uvRepeats.y;
+				uv3.value = _chunk.uvRepeats.z;
+				uv4.value = _chunk.uvRepeats.w;
+				
+				uv_txt1.text = "UV重复： " + uv1.value.toString();
+				uv_txt2.text = "UV重复： " + uv2.value.toString();
+				uv_txt3.text = "UV重复： " + uv3.value.toString();
+				uv_txt4.text = "UV重复： " + uv4.value.toString();
+			}
+			
+			protected function btnClickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				_currBtn = event.currentTarget as Button;
+				
+				if (_chunk == null && _currBtn != btn1)
+					return ;
+				
+				var file :File = new File(Nut.resMgr.baseUrl + "texture");
+				file.addEventListener(Event.SELECT, onSelectTexture);
+				file.browseForOpen("选择地表纹理",  [new FileFilter("图片文件(*.jpg)","*.jpg")]);
+			}
+			
+			private function onSelectTexture(evt:Event):void
+			{
+				var file:File = evt.target as File;
+				var filename:String = Nut.resMgr.solveName(file.url, ResType.TEXTURE);
+				var terrain:TerrainEd = World3D.instance.gameScene.terrain as TerrainEd;
+				
+				if (_currBtn == btn1)
+				{
+					terrain.setSurface(filename, 0);
+					img1.source = file.url;
+					text1.text = filename;
+				}
+				else if (_currBtn == btn2)
+				{
+					if (set_connect.selected && _chunk.getSurfacePath(1) != '')
+					{
+						var chunks:Dictionary = terrain.findConnectChunks(_chunk, 1);
+						
+						for each (var c:Chunk in chunks)
+						{
+							c.setSurfacePath(1, filename);
+						}
+					}
+					else
+					{
+						_chunk.setSurfacePath(1, filename);
+					}
+					img2.source = file.url;
+					text2.text = filename;
+				}
+				else if (_currBtn == btn3)
+				{
+					if (set_connect.selected && _chunk.getSurfacePath(2) != '')
+					{
+						chunks = terrain.findConnectChunks(_chunk, 2);
+						
+						for each (c in chunks)
+						{
+							c.setSurfacePath(2, filename);
+						}
+					}
+					else
+					{
+						_chunk.setSurfacePath(2, filename);
+					}
+					img3.source = file.url;
+					text3.text = filename;
+				}
+				else if (_currBtn == btn4)
+				{
+					if (set_connect.selected && _chunk.getSurfacePath(3) != '')
+					{
+						chunks = terrain.findConnectChunks(_chunk, 3);
+						
+						for each (c in chunks)
+						{
+							c.setSurfacePath(3, filename);
+						}
+					}
+					else
+					{
+						_chunk.setSurfacePath(3, filename);
+					}
+					img4.source = file.url;
+					text4.text = filename;
+				}
+			}
+			
+			protected function uv_changeHandler(event:Event):void
+			{
+				if (_chunk == null)
+					return ;
+				
+				var terrain:TerrainEd = _chunk.terrain as TerrainEd;
+				
+				if (event.currentTarget == uv1)
+				{
+					terrain.setUVRepeat(_chunk.getSurfacePath(0), uv1.value);
+					uv_txt1.text = "UV重复： " + uv1.value.toString();
+				}
+				else if (event.currentTarget == uv2)
+				{
+					terrain.setUVRepeat(_chunk.getSurfacePath(1), uv2.value);
+					uv_txt2.text = "UV重复： " + uv2.value.toString();
+				}
+				else if (event.currentTarget == uv3)
+				{
+					terrain.setUVRepeat(_chunk.getSurfacePath(2), uv3.value);
+					uv_txt3.text = "UV重复： " + uv3.value.toString();
+				}
+				else if (event.currentTarget == uv4)
+				{
+					terrain.setUVRepeat(_chunk.getSurfacePath(3), uv4.value);
+					uv_txt4.text = "UV重复： " + uv4.value.toString();
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<mx:Canvas width="100%" height="100%" backgroundColor="#FFFFFF">
+		<s:Label width="100%" height="20" backgroundColor="#D2E8F4" text="地表纹理" textAlign="center"
+				 verticalAlign="middle"/>
+		<s:Image id="img1" x="10" y="27" width="64" height="64" backgroundColor="0x000000"/>
+		<custom:NoWheelHSlider id="uv1" x="82" y="50" width="168" maximum="64" minimum="1" stepSize="1" value="2" change="uv_changeHandler(event)"/>
+		<s:Label id="uv_txt1" x="82" y="30" text="UV重复： 2"/>
+		<s:Button id="btn1" x="82" y="70" width="53" label="选择..." click="btnClickHandler(event)"/>
+		<s:TextInput id="text1" x="144" y="69" width="106" enabled="false"/>
+		<s:Label x="14" y="113" text="当前chunk"/>
+		<s:Label x="83" y="113" text="x:"/>
+		<s:Label x="157" y="113" text="z:"/>
+		<s:TextInput id="idx_x" x="99" y="108" width="36" enabled="false" text="-1"/>
+		<s:TextInput id="idx_z" x="173" y="108" width="36" enabled="false" text="-1"/>
+		<s:Image id="img2" x="10" y="138" width="64" height="64" backgroundColor="0x000000"/>
+		<custom:NoWheelHSlider id="uv2" x="82" y="161" width="168" maximum="64" minimum="1" stepSize="1" value="2" change="uv_changeHandler(event)"/>
+		<s:Label id="uv_txt2" x="82" y="141" text="UV重复： 2"/>
+		<s:Button id="btn2" x="82" y="181" width="53" label="选择..." click="btnClickHandler(event)"/>
+		<s:TextInput id="text2" x="144" y="180" width="106" enabled="false"/>
+		<s:Image id="img3" x="10" y="212" width="64" height="64" backgroundColor="0x000000"/>
+		<custom:NoWheelHSlider id="uv3" x="82" y="235" width="168" maximum="64" minimum="1" stepSize="1" value="2" change="uv_changeHandler(event)"/>
+		<s:Label id="uv_txt3" x="82" y="215" text="UV重复： 2"/>
+		<s:Button id="btn3" x="82" y="255" width="53" label="选择..." click="btnClickHandler(event)"/>
+		<s:TextInput id="text3" x="144" y="254" width="106" enabled="false"/>
+		<s:Image id="img4" x="10" y="285" width="64" height="64" backgroundColor="0x000000"/>
+		<custom:NoWheelHSlider id="uv4" x="82" y="308" width="168" maximum="64" minimum="1" stepSize="1" value="2" change="uv_changeHandler(event)"/>
+		<s:Label id="uv_txt4" x="82" y="288" text="UV重复： 2"/>
+		<s:Button id="btn4" x="82" y="328" width="53" label="选择..." click="btnClickHandler(event)"/>
+		<s:TextInput id="text4" x="144" y="327" width="106" enabled="false"/>
+		<s:CheckBox id="set_connect" x="10" y="372" label="对所有纹理连续的块设置"/>
+	</mx:Canvas>
+</s:Group>

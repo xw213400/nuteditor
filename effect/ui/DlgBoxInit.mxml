@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx">
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<fx:Script>
+		<![CDATA[
+			import effect.logic.World3D;
+			
+			import mx.events.FlexEvent;
+			
+			import nut.core.Float4;
+			import nut.ext.effect.particle.ParticleSystem;
+			import nut.util.NutMath;
+			
+			private var _ptx:ParticleSystem;
+			private var _direction	:Float4	= Float4.Y_AXIS.clone();
+			private var _outter		:Float4	= Float4.ONE.clone();
+			
+			public function show(ptx:ParticleSystem):void
+			{
+				if (ptx == null || ptx.material.getProperty("ParticleShader", "boxXRange") == null)
+					return ;
+				
+				this.visible = true;
+				_ptx = ptx;
+				
+				var boxXRange:Float4 = _ptx.material.getFloat4("ParticleShader", "boxXRange");
+				var boxYRange:Float4 = _ptx.material.getFloat4("ParticleShader", "boxYRange");
+				var boxZRange:Float4 = _ptx.material.getFloat4("ParticleShader", "boxZRange");
+				
+				genDirScale(boxXRange, boxYRange, boxZRange);
+
+				DX.text = _direction.x.toPrecision(3);
+				DY.text = _direction.y.toPrecision(3);
+				DZ.text = _direction.z.toPrecision(3);
+				
+				OX.text = _outter.x.toPrecision(3);
+				OY.text = _outter.y.toPrecision(3);
+				OZ.text = _outter.z.toPrecision(3);
+			}
+			
+			public function genDirScale(x:Float4, y:Float4, z:Float4):void
+			{
+				var matrix:Matrix3D = new Matrix3D();
+				
+				matrix.copyColumnFrom(0, x.toVector3D());
+				matrix.copyColumnFrom(1, y.toVector3D());
+				matrix.copyColumnFrom(2, z.toVector3D());
+				matrix.copyColumnFrom(3, Float4.IDENTITY.toVector3D());
+				
+				_direction.copyV3D(matrix.deltaTransformVector(Vector3D.Y_AXIS));
+				
+				_outter.x = x.toVector3D().length;
+				_outter.y = y.toVector3D().length;
+				_outter.z = z.toVector3D().length;
+				
+				_direction.normalize();
+			}
+			
+			public function genAreaAxes(x:Float4, y:Float4, z:Float4):void
+			{
+				_direction.normalize();
+				
+				var rot:Float4 = Float4.Y_AXIS.getRotation(_direction);
+				var temp:Float4 = Float4.X_AXIS.clone();
+				temp.rotBy(rot);
+				
+				x.copy(temp);
+				x.scaleBy(_outter.x);
+				y.copy(_direction);
+				y.scaleBy(_outter.y);
+				z.copy(_direction.crossProduct(temp));
+				z.scaleBy(_outter.z);
+			}
+			
+			private function updateData():void
+			{
+				var boxXRange:Float4 = _ptx.material.getFloat4("ParticleShader", "boxXRange");
+				var boxYRange:Float4 = _ptx.material.getFloat4("ParticleShader", "boxYRange");
+				var boxZRange:Float4 = _ptx.material.getFloat4("ParticleShader", "boxZRange");
+				
+				genAreaAxes(boxXRange, boxYRange, boxZRange);
+			}
+			
+			private function changeDX(event:Event):void
+			{
+				_direction.x = event.target.text;
+				
+				updateData();
+			}
+			
+			private function changeDY(event:Event):void
+			{
+				_direction.y = event.target.text;
+				
+				updateData();
+			}
+			private function changeDZ(event:Event):void
+			{
+				_direction.z = event.target.text;
+				
+				updateData();
+			}
+			private function changeOX(event:Event):void
+			{
+				_outter.x = event.target.text;
+				
+				updateData();
+			}
+			private function changeOY(event:Event):void
+			{
+				_outter.y = event.target.text;
+				
+				updateData();
+			}
+			private function changeOZ(event:Event):void
+			{
+				_outter.z = event.target.text;
+				
+				updateData();
+			}
+		]]>
+	</fx:Script>
+	<s:Label x="10" y="18" text="方向"/>
+	<s:Label x="10" y="48" text="大小"/>
+	<s:TextInput id="DX" x="60" y="10" width="45" change="changeDX(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="DY" x="127" y="10" width="45" change="changeDY(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="DZ" x="197" y="10" width="45" change="changeDZ(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="OX" x="60" y="40" width="45" change="changeOX(event)" restrict="0-9 ."/>
+	<s:TextInput id="OY" x="127" y="40" width="45" change="changeOY(event)" restrict="0-9 ."/>
+	<s:TextInput id="OZ" x="197" y="40" width="45" change="changeOZ(event)" restrict="0-9 ."/>
+	<s:Label x="185" y="48" text="Z"/>
+	<s:Label x="115" y="48" text="Y"/>
+	<s:Label x="45" y="48" text="X"/>
+	<s:Label x="185" y="18" text="Z"/>
+	<s:Label x="115" y="18" text="Y"/>
+	<s:Label x="45" y="18" text="X"/>
+</s:Group>

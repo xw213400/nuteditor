@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="208" height="452" 
+		 creationComplete="creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import common.command.CommandChannel;
+			import common.ui.custom.BasePanel;
+			
+			import effect.command.Command;
+			import effect.logic.EditData;
+			
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			
+			[Bindable]
+			private var _compList:ArrayCollection = new ArrayCollection([
+				{label:"颜色渐变影响器",	data:EditData.T_ColorFadeAff},
+				{label:"颜色插值影响器",	data:EditData.T_ColorInterpolateAff},
+				{label:"颜色范围初始化",	data:EditData.T_ColorRangeInit},
+				
+				{label:"轴向心力影响器",	data:EditData.T_AxisForceAff},
+				{label:"Box初始化",			data:EditData.T_BoxInit},
+				{label:"向心力影响器",		data:EditData.T_CentriForceAff},
+				{label:"空心椭球初始化",	data:EditData.T_HollowEllipsoidInit},
+				{label:"线性力影响器",		data:EditData.T_LinearForceAff},
+				{label:"环初始化",			data:EditData.T_RingInit},
+				{label:"速度Box初始化",		data:EditData.T_SpeedBoxInit},
+				{label:"速度球初始化",		data:EditData.T_SpeedSphereInit},
+				
+				{label:"旋转初始化",		data:EditData.T_RotateInit},
+				
+				{label:"大小影响器",		data:EditData.T_ScaleAff},
+				{label:"大小插值影响器",	data:EditData.T_ScaleInterpolateAff},
+				{label:"大小初始化",		data:EditData.T_ScaleRangeInit},
+			]);
+			
+			private var _panel:BasePanel;
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				_panel = new BasePanel();
+				_panel.init(this, "组件列表");
+				this.visible = false;
+				
+				CommandChannel.instance.bindHandler(Command.DlgAddComponent_SHOW, show);
+			}
+			
+			public function show():void
+			{
+				this.visible = true;
+			}
+			
+			protected function addClickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				if (list.selectedItem == null)
+					return ;
+				
+				CommandChannel.instance.postCommand(Command.DlgEffectTree_ADD_COMP, list.selectedItem.data);
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:List id="list" x="10" y="33" width="188" height="380" dataProvider="{_compList}"></s:List>
+	<s:Button x="69" y="421" label="添加" click="addClickHandler(event)"/>
+</s:Group>

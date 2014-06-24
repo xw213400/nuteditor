@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="400" height="300">
+	<fx:Script>
+		<![CDATA[
+			import spark.events.TextOperationEvent;
+			
+			import nut.core.Mesh;
+			
+			private var _mesh :Mesh = null;
+			
+			protected function bindBoneName_changeHandler(event:TextOperationEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public function set mesh(value:Mesh):void
+			{
+				_mesh = value;
+				
+				var triangles :uint = _mesh.geometry.indices.length/6;
+				trianglesInfo.text = "Triangles: " + triangles.toString();
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label id="trianglesInfo" x="5" y="5" text="Triangles:"/>
+	<s:Label x="5" y="30" paddingTop="5" text="Bind Bone:"/>
+	<s:TextInput id="bindBoneName" x="70" y="30" change="bindBoneName_changeHandler(event)"/>
+</s:Group>

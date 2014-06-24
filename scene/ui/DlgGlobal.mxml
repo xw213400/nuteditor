@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009"
+		 xmlns:s="library://ns.adobe.com/flex/spark"
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 width="260" height="262">
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.events.DropdownEvent;
+			
+			import spark.events.TextOperationEvent;
+			
+			import scene.logic.World3D;
+			
+			public function show(visible:Boolean):void
+			{
+				this.visible = visible;
+				
+				if (World3D.instance == null || World3D.instance.gameScene == null)
+					return ;
+				
+//				ambientColor.selectedColor = World3D.instance.ccScene.sunLight.ambientColor;
+//				ambientStrength.text = World3D.instance.ccScene.sunLight.ambient.toPrecision(3);
+//				
+//				diffuseColor.selectedColor = World3D.instance.ccScene.sunLight.color;
+				diffuseStrength.text = World3D.instance.gameScene.sunLight.diffuse.toPrecision(3);
+
+				specularStrength.text = World3D.instance.gameScene.sunLight.specular.toPrecision(3);
+			}
+			
+			protected function ambientColor_closeHandler(event:DropdownEvent):void
+			{
+				// TODO Auto-generated method stub
+//				World3D.instance.ccScene.sunLight.ambientColor = ambientColor.selectedColor;
+			}
+			
+			protected function ambientStrength_changeHandler(event:TextOperationEvent):void
+			{
+				// TODO Auto-generated method stub
+//				World3D.instance.ccScene.sunLight.ambient = parseFloat(ambientStrength.text);
+			}
+			
+			protected function diffuseColor_closeHandler(event:DropdownEvent):void
+			{
+				// TODO Auto-generated method stub
+//				World3D.instance.ccScene.sunLight.color = diffuseColor.selectedColor;
+			}
+			
+			protected function diffuseStrength_changeHandler(event:TextOperationEvent):void
+			{
+				// TODO Auto-generated method stub
+				World3D.instance.gameScene.sunLight.diffuse = parseFloat(diffuseStrength.text);
+			}
+			
+			protected function specularStrength_changeHandler(event:TextOperationEvent):void
+			{
+				// TODO Auto-generated method stub
+				World3D.instance.gameScene.sunLight.specular = parseFloat(specularStrength.text);
+			}		
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label x="10" y="15" text="环境光"/>
+	<mx:ColorPicker id="ambientColor" x="54" y="10" close="ambientColor_closeHandler(event)"/>
+	<s:TextInput id="ambientStrength" x="88" y="10" width="50" change="ambientStrength_changeHandler(event)" restrict="0-9 ."/>
+	<s:Label x="22" y="43" text="颜色"/>
+	<mx:ColorPicker id="diffuseColor" x="54" y="38" close="diffuseColor_closeHandler(event)"/>
+	<s:TextInput id="diffuseStrength" x="54" y="65" width="80" change="diffuseStrength_changeHandler(event)" restrict="0-9 ."/>
+	<s:Label x="21" y="99" text="高光"/>
+	<s:TextInput id="specularStrength" x="54" y="95" width="80" change="specularStrength_changeHandler(event)" restrict="0-9 ."/>
+	<s:Label x="11" y="73" text="漫反射"/>
+</s:Group>

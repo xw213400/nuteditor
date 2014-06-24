@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+					   xmlns:s="library://ns.adobe.com/flex/spark" 
+					   xmlns:mx="library://ns.adobe.com/flex/mx"
+					   width="960" height="640" showStatusBar="false" 
+					   xmlns:ui="model.ui.*" backgroundAlpha="0"
+					   minWidth="300" minHeight="200" frameRate="60"
+					   resize="onResize(event)" addedToStage="addedToStageHandler(event)" 
+					   creationComplete="onCreationComplete(event)">
+	<fx:Script>
+		<![CDATA[
+			import common.command.CommandChannel;
+			import common.command.CommandConst;
+			import common.ui.DlgBaseUrl;
+			import common.ui.DlgEnvLight;
+			
+			import model.command.Command;
+			import common.logic.LoadResHelper;
+			import model.logic.World3D;
+			import model.ui.DlgSaveModel;
+			
+			import mx.collections.XMLListCollection;
+			import mx.events.FlexEvent;
+			import mx.events.MenuEvent;
+			import mx.events.ResizeEvent;
+			import mx.managers.PopUpManager;
+			
+			import nut.core.Nut;
+			import nut.enum.ResType;
+			import nut.util.Monitor;
+			
+			import spark.events.IndexChangeEvent;
+
+			[Bindable]
+			private var _menuData:XMLListCollection = new XMLListCollection(
+					<>
+					<menuitem label="Open">
+						<menuitem label="dae" data="open_dae"/>
+						<menuitem label="mdl" data="open_model"/>
+					</menuitem>
+					<menuitem label="Save">
+						<menuitem label="model" data="save_model"/>
+					</menuitem>
+					<menuitem label="Settings">
+						<menuitem label="base url" data="set_baseUrl"/>
+						<menuitem label="light" data="set_light"/>
+					</menuitem>
+					</>);
+			
+			private var _dlgEnvLight:DlgEnvLight = null;
+			private var _dlgSaveModel:DlgSaveModel = new DlgSaveModel();
+			private var _dlgBaseUrl:DlgBaseUrl = new DlgBaseUrl();
+
+			private function menuHandler(evt:MenuEvent):void
+			{ 
+				if (evt.item.@data == "open_dae")
+					openDAE();
+				else if (evt.item.@data == "open_model")
+					openModel();
+				else if (evt.item.@data == "set_light")
+					_dlgEnvLight.show(World3D.instance);
+				else if (evt.item.@data == "save_model")
+					saveModel();
+				else if (evt.item.@data == "set_baseUrl")
+					setBaseUrl();
+			}
+			
+			private function openDAE():void
+			{
+				LoadResHelper.load("open dea file", new FileFilter("模型文件(*.dae)","*.dae"), onLoadDAEComplete);
+			}
+			
+			private function openModel():void
+			{
+				LoadResHelper.load("open mdl file", new FileFilter("模型文件(*.mdl)","*.mdl"), onLoadModelComplete);
+			}
+			
+			private function saveModel():void
+			{
+				_dlgSaveModel.init();
+				PopUpManager.addPopUp(_dlgSaveModel, this, true);
+				PopUpManager.centerPopUp(_dlgSaveModel);
+			}
+			
+			private function onLoadDAEComplete(data:ByteArray, url:String):void
+			{				
+				CommandChannel.instance.postCommand(Command.ModelEditor_OPEN_DAE, data, url);
+			}
+			
+			private function onLoadModelComplete(data:ByteArray, url:String):void
+			{				
+				CommandChannel.instance.postCommand(Command.ModelEditor_OPEN_MDL, data, url);
+			}
+			
+			protected function onResize(event:ResizeEvent):void
+			{
+				// TODO Auto-generated method stub
+				if (!stage)
+					return;
+
+				mouseArea.width = uiWorld3D.width = stage.stageWidth-260;
+				mouseArea.height= uiWorld3D.height= stage.stageHeight-20;
+				World3D.instance.resize(mouseArea.width, mouseArea.height);
+			}
+			
+			private function changeSelection(event:IndexChangeEvent):void
+			{
+				if (event.target.selectedItem == "Model")
+				{
+					dlgModel.visible = true;
+					dlgSkeleton.visible = false;
+				}
+				else
+				{
+					dlgModel.visible = false;
+					dlgSkeleton.visible = true;
+				}
+			}
+			
+			protected function addedToStageHandler(event:Event):void
+			{
+				// TODO Auto-generated method stub
+				var iniFile :File = File.applicationStorageDirectory.resolvePath("nut/ModelEditor.ini");
+				if (iniFile.exists)
+				{
+					var fileStream :FileStream = new FileStream();
+					fileStream.addEventListener(Event.COMPLETE, onSettingsFileComplete);
+					fileStream.openAsync(iniFile, FileMode.READ);
+				}
+				else
+				{
+					setBaseUrl();
+				}
+			}
+			
+			private function setBaseUrl():void
+			{
+				_dlgBaseUrl.init();
+				PopUpManager.addPopUp(_dlgBaseUrl, this, true);
+				PopUpManager.centerPopUp(_dlgBaseUrl);
+			}
+			
+			private function onSettingsFileComplete(evt:Event):void
+			{
+				var data:ByteArray = new ByteArray();
+				var fileStream :FileStream = evt.target as FileStream;
+				
+				fileStream.readBytes(data, 0, fileStream.bytesAvailable);
+				fileStream.close();
+
+				createWorld3D(data.readUTF());
+			}
+			
+			private function onSettingsOK(baseUrl:String):void
+			{
+				var iniFile :File = File.applicationStorageDirectory.resolvePath("nut/ModelEditor.ini");;
+				var fs:FileStream = new FileStream();
+				fs.open(iniFile, FileMode.WRITE);
+				fs.position = 0;
+				fs.writeUTF(baseUrl);
+				fs.close();
+				
+				if (World3D.instance == null)
+					createWorld3D(baseUrl);
+				else
+					Nut.resMgr.baseUrl = baseUrl;
+			}
+			
+			private function createWorld3D(workFolder:String):void
+			{
+				new World3D(workFolder, stage, mouseArea);
+				uiWorld3D.addChild(Nut.scene.viewport.sprite);
+				Nut.scene.viewport.resetPosition(uiWorld3D.x, uiWorld3D.y);
+				
+				stage.addChildAt(Monitor.instance, 0);
+				Monitor.instance.x = 260;
+				Monitor.instance.y = 20;
+			}
+			
+			protected function onCreationComplete(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				CommandChannel.instance.bindHandler(CommandConst.DlgBaseUrl_OK, onSettingsOK);
+				
+				_dlgEnvLight = new DlgEnvLight();
+				_dlgEnvLight.x = 260;
+				_dlgEnvLight.y = 20;
+				_dlgEnvLight.visible = false;
+				this.addElement(_dlgEnvLight);
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<mx:MenuBar width="100%" height="20" dataProvider="{_menuData}" labelField="@label" itemClick="menuHandler(event)"/>
+	<s:Group x="260" y="20" width="700" height="620" id="mouseArea"/>
+	<mx:UIComponent x="260" y="20" width="700" height="620" id="uiWorld3D"/>
+	<s:TabBar y="20" width="260" change="changeSelection(event)">
+		<s:dataProvider>
+			<s:ArrayCollection source="['Model', 'Skeleton']"/>
+		</s:dataProvider>
+	</s:TabBar>
+	<ui:DlgModel y="40" width="260" height="100%" id="dlgModel"/>
+	<ui:DlgSkeleton y="40" width="260" height="100%" id="dlgSkeleton" visible="false"/>
+</s:WindowedApplication>

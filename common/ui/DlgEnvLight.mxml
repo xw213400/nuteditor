@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="260" height="196" 
+		 creationComplete="creationCompleteHandler(event)">
+	<fx:Script>
+		<![CDATA[
+			import common.logic.WorldBase;
+			import common.ui.custom.BasePanel;
+			
+			import mx.events.ColorPickerEvent;
+			import mx.events.FlexEvent;
+			
+			import nut.core.light.AmbientLight;
+			import nut.core.light.DirectionLight;
+			import nut.core.Float4;
+			import nut.util.NutMath;
+			
+			import spark.events.TextOperationEvent;
+			
+			private var _panel:BasePanel;
+			private var _world:WorldBase;
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				_panel = new BasePanel();
+				_panel.init(this, "光照");
+			}
+			
+			public function show(world:WorldBase):void
+			{
+				this.visible = true;
+				_world = world;
+				
+				var ambientLight:AmbientLight = _world.ambientLight;
+				var directionLight:DirectionLight = _world.sunLight;
+				
+				ambient.text = ambientLight.ambient.toPrecision(3);
+				diffuse.text = directionLight.diffuse.toPrecision(3);
+				specular.text = directionLight.specular.toPrecision(3);
+				shininess.text = directionLight.shininess.toPrecision(3);
+				ambientColor.selectedColor = new Float4(ambientLight.colorR, ambientLight.colorG, ambientLight.colorB, 0).getAsARGB();
+				diffuseColor.selectedColor = new Float4(directionLight.colorR, directionLight.colorG, directionLight.colorB, 0).getAsARGB();
+				
+				var rotation:Vector3D = directionLight.transform.decompose()[1];
+				
+				rotx.value = rotation.x * NutMath.RAD_2_DEG;
+				roty.value = rotation.y * NutMath.RAD_2_DEG;
+				rotz.value = rotation.z * NutMath.RAD_2_DEG;
+			}
+			
+			protected function diffuseColor_changeHandler(event:ColorPickerEvent):void
+			{
+				// TODO Auto-generated method stub
+				var color:Float4 = NutMath.parseARGB(diffuseColor.selectedColor);
+				_world.sunLight.colorR = color.r;
+				_world.sunLight.colorG = color.g;
+				_world.sunLight.colorB = color.b;
+			}
+			
+			protected function ambientColor_changeHandler(event:ColorPickerEvent):void
+			{
+				// TODO Auto-generated method stub
+				var color:Float4 = NutMath.parseARGB(ambientColor.selectedColor);
+				_world.ambientLight.colorR = color.r;
+				_world.ambientLight.colorG = color.g;
+				_world.ambientLight.colorB = color.b;
+			}
+			
+			protected function diffuse_changeHandler(event:TextOperationEvent):void
+			{
+				// TODO Auto-generated method stub
+				_world.sunLight.diffuse = parseFloat(diffuse.text);
+			}
+			
+			protected function specular_changeHandler(event:TextOperationEvent):void
+			{
+				// TODO Auto-generated method stub
+				_world.sunLight.specular = parseFloat(specular.text);
+			}
+			
+			protected function shininess_changeHandler(event:TextOperationEvent):void
+			{
+				// TODO Auto-generated method stub
+				_world.sunLight.shininess = parseFloat(shininess.text);
+			}
+			
+			protected function ambient_changeHandler(event:TextOperationEvent):void
+			{
+				// TODO Auto-generated method stub
+				_world.ambientLight.ambient = parseFloat(ambient.text);
+			}
+			
+			protected function onRotChange(event:Event):void
+			{
+				var comps:Vector.<Vector3D> = _world.sunLight.transform.decompose();
+				
+				comps[1].x = rotx.value * NutMath.DEG_2_RAD;
+				comps[1].y = roty.value * NutMath.DEG_2_RAD;
+				comps[1].z = rotz.value * NutMath.DEG_2_RAD;
+				
+				_world.sunLight.transform.recompose(comps);
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label x="134" y="79" text="Diffuse"/>
+	<s:TextInput id="diffuse" x="181" y="72" width="62" restrict="0-9 ." change="diffuse_changeHandler(event)"/>
+	<mx:ColorPicker id="diffuseColor" x="85" y="72" change="diffuseColor_changeHandler(event)"/>
+	<s:Label x="53" y="80" text="Color"/>
+	<s:Label x="127" y="109" text="Specular"/>
+	<s:TextInput id="specular" x="181" y="102" width="62" restrict="0-9 ." change="specular_changeHandler(event)"/>
+	<s:Label x="124" y="138" text="Shininess"/>
+	<s:TextInput id="shininess" x="181" y="132" width="62" restrict="0-9 ." change="shininess_changeHandler(event)"/>
+	<s:Label x="132" y="39" text="Ambient"/>
+	<s:TextInput id="ambient" x="183" y="33" width="61" restrict="0-9 ." change="ambient_changeHandler(event)"/>
+	<mx:ColorPicker id="ambientColor" x="86" y="32" change="ambientColor_changeHandler(event)"/>
+	<s:Label x="53" y="40" text="Color"/>
+	<mx:HRule x="8" y="62" width="242"/>
+	<s:Label x="13" y="38" text="环境光"/>
+	<s:Label x="12" y="78" text="方向光"/>
+	<s:Label x="9" y="168" text="方向"/>
+	<s:Label x="44" y="170" text="X"/>
+	<s:Label x="117" y="170" text="Y"/>
+	<s:NumericStepper id="rotx" x="54" y="162" width="55" change="onRotChange(event)" maximum="180"
+					  minimum="-180" stepSize="1"/>
+	<s:NumericStepper id="roty" x="128" y="162" width="53" change="onRotChange(event)" maximum="180"
+					  minimum="-180" stepSize="1"/>
+	<s:Label x="189" y="170" text="Z"/>
+	<s:NumericStepper id="rotz" x="199" y="162" width="51" change="onRotChange(event)" maximum="180"
+					  minimum="-180" stepSize="1"/>
+</s:Group>

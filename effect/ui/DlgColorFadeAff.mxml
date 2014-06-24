@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="260" height="300">
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import nut.core.Float4;
+			import nut.ext.effect.particle.ParticleSystem;
+			
+			private var _ptx:ParticleSystem;
+			
+			public function show(ptx:ParticleSystem):void
+			{
+				if (ptx == null || ptx.material.getProperty("ParticleShader", "colorAdj1") == null)
+					return ;
+				
+				this.visible = true;
+				_ptx = ptx;
+				
+				var colorAdj1:Float4 = _ptx.material.getFloat4("ParticleShader", "colorAdj1");
+				var colorAdj2:Float4 = _ptx.material.getFloat4("ParticleShader", "colorAdj2");
+				var timePhase:Float4 = _ptx.material.getFloat4("ParticleShader", "timePhase");
+				
+				CR1.text = colorAdj1.r.toPrecision(3);
+				CG1.text = colorAdj1.g.toPrecision(3);
+				CB1.text = colorAdj1.b.toPrecision(3);
+				CA1.text = colorAdj1.a.toPrecision(3);
+				
+				CR2.text = colorAdj2.r.toPrecision(3);
+				CG2.text = colorAdj2.g.toPrecision(3);
+				CB2.text = colorAdj2.b.toPrecision(3);
+				CA2.text = colorAdj2.a.toPrecision(3);
+				
+				SCT.text = timePhase.x.toPrecision(3);
+			}
+			
+			private function changeC1(event:Event):void
+			{
+				var colorAdj1:Float4 = _ptx.material.getFloat4("ParticleShader", "colorAdj1");
+				
+				colorAdj1.r = parseFloat(CR1.text);
+				colorAdj1.g = parseFloat(CG1.text);
+				colorAdj1.b = parseFloat(CB1.text);
+				colorAdj1.a = parseFloat(CA1.text);
+			}
+			
+			private function changeC2(event:Event):void
+			{
+				var colorAdj2:Float4 = _ptx.material.getFloat4("ParticleShader", "colorAdj2");
+				
+				colorAdj2.r = parseFloat(CR2.text);
+				colorAdj2.g = parseFloat(CG2.text);
+				colorAdj2.b = parseFloat(CB2.text);
+				colorAdj2.a = parseFloat(CA2.text);
+			}
+			
+			private function changeSCT(event:Event):void
+			{
+				var timePhase:Float4 = _ptx.material.getFloat4("ParticleShader", "timePhase");
+				
+				timePhase.x = parseFloat(event.target.text);
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label x="23" y="28" text="变化值1"/>
+	<s:Label x="22" y="151" text="变化值2"/>
+	<s:Label x="20" y="103" text="值2开始时间"/>
+	<s:TextInput id="CR1" x="99" y="18" width="41" change="changeC1(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="CA1" x="187" y="53" width="41" change="changeC1(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="CR2" x="99" y="144" width="41" change="changeC2(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="CA2" x="187" y="179" width="41"  change="changeC2(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="CB2" x="99" y="179" width="41" change="changeC2(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="CG2" x="187" y="143" width="41" change="changeC2(event)" restrict="0-9 . \-"/>
+	<s:Label x="85" y="153" text="R"/>
+	<s:Label x="174" y="148" text="G"/>
+	<s:Label x="87" y="187" text="B"/>
+	<s:Label x="174" y="187" text="A"/>
+	<s:TextInput id="CB1" x="99" y="53" width="41" change="changeC1(event)" restrict="0-9 . \-"/>
+	<s:TextInput id="CG1" x="187" y="17" width="41" change="changeC1(event)" restrict="0-9 . \-"/>
+	<s:Label x="85" y="27" text="R"/>
+	<s:Label x="174" y="22" text="G"/>
+	<s:Label x="87" y="61" text="B"/>
+	<s:Label x="174" y="61" text="A"/>
+	<s:TextInput id="SCT" x="98" y="97" width="42" change="changeSCT(event)" restrict="0-9 ."/>
+	<s:Label x="148" y="89" width="82" height="41" text="离粒子回收还剩？秒时，值2开始生效"/>
+</s:Group>

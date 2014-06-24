@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx"
+		 creationComplete="creationCompleteHandler(event)" 
+		 xmlns:ui="model.ui.*" xmlns:custom="common.ui.custom.*">
+	<fx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.events.FlexEvent;
+			import mx.events.ListEvent;
+			
+			import common.command.CommandChannel;
+			import model.command.Command;
+			
+			import nut.ext.model.Bone;
+			import nut.ext.model.Skeleton;
+			
+			[Bindable]
+			private var _bonesData :ArrayCollection = new ArrayCollection();
+			
+			private var _skeleton :Skeleton = null;
+			
+			protected function bones_changeHandler(event:ListEvent):void
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			
+			protected function creationCompleteHandler(event:FlexEvent):void
+			{
+				// TODO Auto-generated method stub
+				CommandChannel.instance.bindHandler(Command.ModelLogic_SKELETON_READY, onSkeletonReady);
+			}
+			
+			private function onSkeletonReady(skeleton:Skeleton):void
+			{
+				_skeleton = skeleton;
+				_bonesData.removeAll();
+				
+				addBone(_skeleton.root, _bonesData);
+			}
+			
+			private function addBone(bone:Bone, parent:ArrayCollection) :void
+			{
+				var childArray :ArrayCollection = new ArrayCollection();
+				parent.addItem({label:bone.name, children:childArray});
+
+				for each (var bone:Bone in bone.children)
+				{
+					addBone(bone, childArray);
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<mx:VDividedBox width="100%" height="100%">
+		<custom:AutoSizeTree id="bones" width="100%" maxHorizontalScrollPosition="500" dataProvider="{_bonesData}" change="bones_changeHandler(event)"/>
+		<s:List id="anims" width="100%"/>
+		<s:Group width="100%">
+			
+		</s:Group>
+	</mx:VDividedBox>
+</s:Group>

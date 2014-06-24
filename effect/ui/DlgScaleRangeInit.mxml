@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx">
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			
+			import nut.core.Float4;
+			import nut.ext.effect.particle.ParticleSystem;
+			
+			private var _ptx:ParticleSystem;
+			
+			public function show(ptx:ParticleSystem):void
+			{
+				if (ptx == null || ptx.material.getProperty("ParticleShader", "scaleRangeInit") == null)
+					return ;
+				
+				this.visible = true;
+				_ptx = ptx;
+				
+				var scale:Float4 = _ptx.material.getFloat4("ParticleShader", "scaleRangeInit");
+				
+				SMINX.text = scale.x.toPrecision(3);
+				SMINY.text = scale.y.toPrecision(3);
+				SMAXX.text = scale.z.toPrecision(3);
+				SMAXY.text = scale.w.toPrecision(3);
+			}
+			
+			private function changeS(event:Event):void
+			{
+				var scale:Float4 = _ptx.material.getFloat4("ParticleShader", "scaleRangeInit");
+				
+				scale.x = parseFloat(SMINX.text);
+				scale.y = parseFloat(SMINY.text);
+				scale.z = parseFloat(SMAXX.text);
+				scale.w = parseFloat(SMAXY.text);
+			}
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label x="7" y="28" text="最小尺寸"/>
+	<s:Label x="7" y="75" text="最大尺寸"/>
+	<s:TextInput id="SMINX" x="74" y="21" width="39" change="changeS(event)" restrict="0-9 ."/>
+	<s:TextInput id="SMINY" x="136" y="22" width="39" change="changeS(event)" restrict="0-9 ."/>
+	<s:TextInput id="SMAXX" x="74" y="68" width="39" change="changeS(event)" restrict="0-9 ."/>
+	<s:TextInput id="SMAXY" x="136" y="69" width="39" change="changeS(event)" restrict="0-9 ."/>
+	<s:Label x="124" y="76" text="Y"/>
+	<s:Label x="61" y="75" text="X"/>
+	<s:Label x="124" y="29" text="Y"/>
+	<s:Label x="61" y="28" text="X"/>
+</s:Group>

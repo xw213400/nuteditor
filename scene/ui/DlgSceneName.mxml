@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Group xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		 xmlns:s="library://ns.adobe.com/flex/spark" 
+		 xmlns:mx="library://ns.adobe.com/flex/mx" width="400" height="300">
+	
+	<fx:Script>
+		<![CDATA[
+			import mx.managers.PopUpManager;
+			
+			import common.command.CommandChannel;
+			import scene.command.Command;
+			
+			protected function button1_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				if (sceneName.text == "")
+					return;
+				
+				PopUpManager.removePopUp(this);
+				CommandChannel.instance.postCommand(Command.SceneEditor_SCENE_NAME_OK, sceneName.text);
+			}
+			
+			protected function button2_clickHandler(event:MouseEvent):void
+			{
+				// TODO Auto-generated method stub
+				PopUpManager.removePopUp(this);
+			}
+			
+		]]>
+	</fx:Script>
+	
+	<fx:Declarations>
+		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
+	</fx:Declarations>
+	<s:Label x="0" y="10" text="场景名称:"/>
+	<s:TextInput id="sceneName" x="68" y="5" width="300"/>
+	<s:Button x="150" y="100" label="确定" click="button1_clickHandler(event)"/>
+	<s:Button x="250" y="100" label="取消" click="button2_clickHandler(event)"/>
+</s:Group>
